@@ -11,6 +11,12 @@ def potential(U0, r, rmax):
         return U0
     else:
         return 0   
+    
+def rmin(b,V,E,rmax):
+    if E>V:
+        return b/math.sqrt(1-V/E)
+    else:
+        return rmax
 
 def analytical(E, U0):
     def theta_b_greater(b, rmax):
