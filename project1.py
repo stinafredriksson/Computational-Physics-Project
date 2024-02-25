@@ -11,7 +11,12 @@ def potential(U0, r, rmax):
         return U0
     else:
         return 0
-
+    
+def rmin(b,V,E,rmax):
+    if E>V:
+        return b/math.sqrt(1-V/E)
+    else:
+        return rmax
 
 def theta_b_less(b, rmax, U0, E):
     return 2*math.asin(b/rmax/(1-U0/E)) - 2*math.asin(b/rmax)    
