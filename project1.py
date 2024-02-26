@@ -6,6 +6,8 @@ import math
 import numpy as np
 from functions import boole
 
+#################################################################
+## FUNCTIONS
 
 def potential(U0, r, rmax):
     if r <= rmax:
@@ -35,8 +37,8 @@ def f_E_greater_2(p):
     # p = (r-rmin)**0.5
     return 1/(p**2+rmin)**2*(1-b**2/(p**2+rmin)**2 - U0/E)**-0.5*2*p
 
-
-## GLOBAL VARIABLES ##
+#################################################################
+## GLOBALS
 
 U0 = 1
 E = 2
@@ -45,6 +47,9 @@ b = 2
 # b = [rmax/14*i for i in range(15)]
 rmin = r_min(b, U0, E, rmax)
 # b = [rmax/14*i for i in range(15)] # between 0 and rmax
+
+#################################################################
+## MAIN
 
 def main():
     N = 20
@@ -59,6 +64,9 @@ def main():
     
     print(f"Numerical solution: {theta_num}")
     print(f"Analytical solution: {theta_analytic_values}")
+
+#################################################################
+## RUN CODE
 
 if __name__ == '__main__':
     main()
