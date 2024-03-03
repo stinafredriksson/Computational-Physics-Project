@@ -16,3 +16,16 @@ def abs_db_dtheta(b):
 def cross_section(b,theta):
     return b/math.sin(theta)*abs_db_dtheta(b)
 
+def Lennard_Jones(r, a):
+    return 4*V0*((a/r)**12-(a/r)**6)
+
+
+## GLOBAL VARIABLES ##
+V0 = 1
+
+def main():
+
+    pass
+
+if __name__ == "__main__":
+    main()
