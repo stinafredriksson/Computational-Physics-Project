@@ -5,6 +5,7 @@
 import math
 import numpy as np
 from functions import boole
+import matplotlib.pyplot as plt
     
 def r_min(b, U0, E, rmax):
     if E > U0:
@@ -16,11 +17,11 @@ def theta_b_less(b, rmax):
     return math.pi - 2*math.asin(b/rmax)
 
 def theta_b_greater(b, rmax, U0, E):
-    return 2*math.asin(b/rmax/(1-U0/E)**0.5) - 2*math.asin(b/rmax) 
+    return 2*np.arcsin(b/rmax/(1-U0/E)**0.5) - 2*np.arcsin(b/rmax)
     
 def integral_1(p):
     if p == 0:
-        return 1.41421*(1/b)**1.5
+        return 2**0.5*(1/b)**1.5
     else:
         return 1/(p**2+b)**2*(1-b**2/(p**2+b)**2)**-0.5*2*p
     
@@ -29,6 +30,19 @@ def integral_2(p):
         return 0
     else:
         return 1/(p**2+rmin)**2*(1-b**2/(p**2+rmin)**2-U0/E)**-0.5*2*p
+    
+def check_large_b():
+
+    def __arc(b):
+        return 2*np.arcsin(b/rmax/(1-U0/E)**0.5)
+
+    bs = np.linspace(0,rmax)
+    # print(rmax*math.sqrt(1-U0/E))
+
+    print(theta_b_greater(rmax*(1-U0/E)**0.5,rmax,U0,E)/math.pi)
+
+    plt.plot(bs,theta_b_greater(bs,rmax,U0,E))
+    plt.show()
 
 ## GLOBAL VARIABLES ##
 
@@ -41,17 +55,18 @@ rmin = r_min(b, U0, E, rmax)
 # b = [rmax/14*i for i in range(15)] # between 0 and rmax
 
 def main():
-    N = 40
-    theta_num_1 = 2*b*boole(integral_1, 0, (rmax-b)**0.5, N)
-    theta_num_2 = 2*b*boole(integral_2, 0, (rmax-rmin)**0.5, N)
-    theta_num = theta_num_1 - theta_num_2
-    if E> U0:
-        theta_analytic_values = theta_b_greater(b, rmax, U0, E)
-    else:
-        theta_analytic_values = theta_b_less(b, rmax)
+    check_large_b()
+    # N = 40
+    # theta_num_1 = 2*b*boole(integral_1, 0, (rmax-b)**0.5, N)
+    # theta_num_2 = 2*b*boole(integral_2, 0, (rmax-rmin)**0.5, N)
+    # theta_num = theta_num_1 - theta_num_2
+    # if E> U0:
+    #     theta_analytic_values = theta_b_greater(b, rmax, U0, E)
+    # else:
+    #     theta_analytic_values = theta_b_less(b, rmax)
     
-    print(f"Numerical solution: {theta_num}")
-    print(f"Analytical solution: {theta_analytic_values}")
+    # print(f"Numerical solution: {theta_num}")
+    # print(f"Analytical solution: {theta_analytic_values}")
 
 
 
