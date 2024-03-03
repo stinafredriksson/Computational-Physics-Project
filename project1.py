@@ -58,8 +58,8 @@ def plot_greater():
 
 
     plt.title("Deflection angle over impact parameter")
-    plt.plot(bs,[theta_b_less(bi,rmax) for bi in bs],c="C0",linestyle="--",label=r"$E\leq V$")
-    plt.plot(bs, [theta_b_greater(bi,rmax, U0, E) for bi in bs],c="C1",linestyle="--",label=r"E>V")
+    plt.plot(bs,[theta_b_less(bi,rmax) for bi in bs],c="C0",linestyle="--",label=r"$E\leq U_0$")
+    plt.plot(bs, [theta_b_greater(bi,rmax, U0, E) for bi in bs],c="C1",linestyle="--",label=r"$E>U_0$")
     plt.grid(linestyle="--")
     plt.xlabel("b")
     plt.xticks([0,rmax*math.sqrt(1-U0/E),rmax],["0",r"$r_\text{max}\sqrt{1-\frac{U_0}{E}}$",r"$r_\text{max}$"])
@@ -67,6 +67,25 @@ def plot_greater():
     plt.legend()
     plt.yticks([0,math.pi/2,math.pi],[0,r"$\pi/2$",r"$\pi$"])
     plt.subplots_adjust(bottom=0.145)
+    plt.show()
+
+def plot_square():
+
+    def __square(r):
+        if r<=rmax:
+            return U0
+        else:
+            return 0
+
+    rs = np.linspace(0,rmax+0.2*rmax,2000)
+
+    plt.title("Square potential")
+    plt.plot(rs,[__square(ri) for ri in rs])
+    plt.xlabel("r")
+    plt.ylabel(r"$V_\text{square}$")
+    plt.yticks([0,U0/2,U0],["0",r"$U_0/2$",r"$U_0$"])
+    plt.xticks([0,rmax/2,rmax],["0",r"$r_\text{max}/2$",r"$r_\text{max}$"])
+    plt.grid(linestyle="--")
     plt.show()
 
 #################################################################
@@ -86,6 +105,7 @@ rmin = r_min(b, U0, E, rmax)
 def main():
 
     plot_greater()
+    # plot_square()
 
     # N = 20
     # if E < U0:
