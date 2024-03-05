@@ -63,11 +63,29 @@ def integral_1(p,b,rmin):
 def integral_2(p,b,rmin):
     if p==0:
         if b == 0:
-            return 0
+            return 0 
         return 2**0.5/b**1.5*(1-U0/E)**0.25
     else:
         return 1/(p**2+rmin)**2/(1-b**2/(p**2+rmin)**2-U0/E)**0.5*2*p
     
+
+def integrate(b, N):
+
+    if E>U0:
+        rmin = r_min(b, U0, E, rmax)
+    else:
+        rmin = rmax
+    
+    if b == 0 and E<=U0:
+        theta_num_1 = math.pi
+    else:
+        theta_num_1=2*b*boole(integral_1,0,(rmax-b)**0.5,N,b,rmin)
+
+    theta_num_2=2*b*boole(integral_2,0,(rmax-rmin)**0.5,N,b,rmin)
+    # theta_num=theta_num_1-theta_num_2
+        
+    return theta_num_1-np.real(theta_num_2)
+
 
 def plot_greater():
 
@@ -108,29 +126,22 @@ def plot_square():
 
 def plot_difference():
 
-    bs = np.linspace(0,rmax,100)
+    bs = np.linspace(0,rmax,2000)
 
-    N = 40
+    N = 160
 
     numerical = []
     theory = []
     error = []
+    imag = []
 
-    for i, bi in enumerate(bs):
+    for i, bnp in enumerate(bs):
+
+        bi = bnp.item()
 
         print(f"{round(i/len(bs)*100)}",end="\r")
 
-        if E>U0:
-            rmin = r_min(bi, U0, E, rmax)
-            theta_num_2=2*bi*boole(integral_2,0,(rmax-rmin)**0.5,N,bi,rmin)
-        else:
-            rmin = rmax
-            theta_num_2 = 0
-            
-
-        theta_num_1=2*bi*boole(integral_1,0,(rmax-bi)**0.5,N,bi,rmin)
-        
-        theta_num=np.real(theta_num_1-theta_num_2)
+        theta_num = integrate(bi, N)
 
         if E>U0:
             theta_analytic_values=theta_b_greater(bi,rmax,U0,E)
@@ -140,10 +151,27 @@ def plot_difference():
         error.append(theta_num-theta_analytic_values)
         numerical.append(theta_num)
         theory.append(theta_analytic_values)
+    
 
+    plt.figure(1)
     plt.plot(bs,numerical,color="C0",linestyle="--",label="Numerical")
     plt.plot(bs,theory,color="C1",linestyle="dotted",label="Analytical")
+    plt.xlabel("b")
+    plt.ylabel(r"$\Theta(b)$")
+
+    if E>U0:
+        plt.yticks([0,math.pi/4,math.pi/2],[0,r"$\pi/4$",r"$\pi/2$"])
+        plt.xticks([0,rmax*math.sqrt(1-U0/E),rmax],[0,r"$r_\text{max}\sqrt{1-\frac{U_0}{E}}$",r"$r_\text{max}$"])
+        plt.subplots_adjust(bottom=0.145)
+    else:
+        plt.yticks([0,math.pi/2,math.pi],[0,r"$\pi/2$",r"$\pi$"])
+    
+    plt.grid(linestyle="--")
+
+    # plt.plot(bs,imag)
     plt.legend()
+
+    # plt.figure(2)
     # plt.plot(bs,error)
     plt.show()
 
@@ -167,24 +195,18 @@ def main():
     # plot_square()
     plot_difference()
 
-    b = 9
-    
-    # if E>U0:
-    #     rmin = r_min(b, U0, E, rmax)
-    # else:
-    #     rmin = rmax
 
+    # b = 0.2
     # N = 40
-    # theta_num_1=2*b*boole(integral_1,0,(rmax-b)**0.5,N,b,rmin)
-    # theta_num_2=2*b*boole(integral_2,0,(rmax-rmin)**0.5,N,b,rmin)
-    # theta_num=theta_num_1-theta_num_2
+    
+    # theta_num=integrate(b,N)
     # if E>U0:
     #     theta_analytic_values=theta_b_greater(b,rmax,U0,E)
     # else:
     #     theta_analytic_values=theta_b_less(b,rmax)
 
     
-    # print(f"Numerical solution: {np.real(theta_num)}")
+    # print(f"Numerical solution: {theta_num}")
     # print(f"Analytical solution: {theta_analytic_values}")
 
 #################################################################
