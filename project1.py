@@ -145,39 +145,62 @@ def plot_difference():
 
         theta_num = integrate(bi, N)
 
-        if E>U0:
+        if E>abs(U0) or U0<0:
             theta_analytic_values=theta_b_greater(bi,rmax,U0,E)
         else:
             theta_analytic_values=theta_b_less(bi,rmax)
 
-        error.append(theta_num-theta_analytic_values)
+        error.append(abs(theta_num-theta_analytic_values))
         numerical.append(theta_num)
         theory.append(theta_analytic_values)
     
-
     plt.figure(1)
     plt.plot(bs,numerical,color="C0",linestyle="--",label="Numerical")
     plt.plot(bs,theory,color="C1",linestyle="dotted",label="Analytical")
     plt.xlabel("b")
     plt.ylabel(r"$\Theta(b)$")
 
-    if E>U0:
+    if E>abs(U0) and U0>0:
+        title = r"$E>|U_0|$"
         plt.yticks([0,math.pi/4,math.pi/2],[0,r"$\pi/4$",r"$\pi/2$"])
         plt.xticks([0,rmax*math.sqrt(1-U0/E),rmax],[0,r"$r_\text{max}\sqrt{1-\frac{U_0}{E}}$",r"$r_\text{max}$"])
         plt.subplots_adjust(bottom=0.145)
     else:
-        plt.yticks([0,math.pi/2,math.pi],[0,r"$\pi/2$",r"$\pi$"])
-    
+        title = r"$E\leq |U_0|$"
+        plt.xticks([0,rmax/2,rmax],[0,r"$r_\text{max}/2$",r"$r_\text{max}$"])
+        if U0>0:
+            plt.yticks([0,math.pi/2,math.pi],[0,r"$\pi/2$",r"$\pi$"])
+
+    if U0 < 0:
+        title2 = r"$U_0<0$"
+    else:
+        title2 = r"$U_0>0$"
+
+    plt.title(f"{title}, {title2}")
+
     plt.grid(linestyle="--")
 
     # plt.plot(bs,imag)
     plt.legend()
 
     plt.figure(2)
+
+    plt.title(f"{title}, {title2}")
     plt.plot(bs,error)
-    plt.ylabel("Error")
-    plt.xticks([0,rmax*math.sqrt(1-U0/E),rmax],[0,r"$r_\text{max}\sqrt{1-\frac{U_0}{E}}$",r"$r_\text{max}$"])
-    plt.ylim(-3.5e-12,1e-12)
+    plt.ylabel("|Error|")
+
+    if E>abs(U0):
+        title = r"$E>|U_0|$"
+        if U0 > 0:
+            plt.xticks([0,rmax*math.sqrt(1-U0/E),rmax],[0,r"$r_\text{max}\sqrt{1-\frac{U_0}{E}}$",r"$r_\text{max}$"])
+            plt.subplots_adjust(bottom=0.145)
+        else:
+            plt.xticks([0,rmax/2,rmax],[0,r"$r_\text{max}/2$",r"$r_\text{max}$"])
+    else:
+        title = r"$E\leq |U_0|$"
+        plt.xticks([0,rmax/2,rmax],[0,r"$r_\text{max}/2$",r"$r_\text{max}$"])
+    
+    plt.yscale("log")
     plt.grid(linestyle="--")
     plt.show()
 
@@ -226,8 +249,8 @@ def plot_ordo():
 #################################################################
 ## GLOBALS
 
-U0 = 1
-E = 1
+U0 = -1
+E = 2
 rmax = 10
 # b = 0.5
 # b = [rmax/14*i for i in range(15)]
