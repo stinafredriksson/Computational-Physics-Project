@@ -42,6 +42,7 @@ def boole(f, a1: float, a2:float, N:int, b, rmin) -> float:
 def theta_b_less(b, rmax):
     return math.pi - 2*math.asin(b/rmax)
 
+
 def theta_b_greater(b, rmax, U0, E):
     if 0 <= b < rmax*math.sqrt(1-U0/E):
         return 2*math.asin(b/rmax/(1-U0/E)**0.5) - 2*math.asin(b/rmax) 
@@ -52,6 +53,7 @@ def theta_b_greater(b, rmax, U0, E):
     else:
         raise ValueError("b cannot be below zero")
 
+
 def integral_1(p,b,rmin):
     if p==0:
         if b == 0:
@@ -60,6 +62,7 @@ def integral_1(p,b,rmin):
     else:
         return 1/(p**2+b)**2*(1-b**2/(p**2+b)**2)**-0.5*2*p
     
+
 def integral_2(p,b,rmin):
     if p==0:
         if b == 0:
@@ -82,8 +85,7 @@ def integrate(b, N):
         theta_num_1=2*b*boole(integral_1,0,(rmax-b)**0.5,N,b,rmin)
 
     theta_num_2=2*b*boole(integral_2,0,(rmax-rmin)**0.5,N,b,rmin)
-    # theta_num=theta_num_1-theta_num_2
-        
+    
     return theta_num_1-np.real(theta_num_2)
 
 
@@ -171,15 +173,61 @@ def plot_difference():
     # plt.plot(bs,imag)
     plt.legend()
 
-    # plt.figure(2)
-    # plt.plot(bs,error)
+    plt.figure(2)
+    plt.plot(bs,error)
+    plt.ylabel("Error")
+    plt.xticks([0,rmax*math.sqrt(1-U0/E),rmax],[0,r"$r_\text{max}\sqrt{1-\frac{U_0}{E}}$",r"$r_\text{max}$"])
+    plt.ylim(-3.5e-12,1e-12)
+    plt.grid(linestyle="--")
     plt.show()
+
+
+def plot_ordo():
+
+    b = 8
+
+    Ns = [k*4 for k in range(10,101)]
+
+    error = []
+
+    conv = []
+
+    for i, N in enumerate(Ns):
+
+        print(f"{round(i/len(Ns)*100)}",end="\r")
+
+        theta_num = integrate(b, N)
+
+        if E>U0:
+            theta_analytic_values=theta_b_greater(b,rmax,U0,E)
+        else:
+            theta_analytic_values=theta_b_less(b,rmax)
+
+        error.append(abs(theta_num-theta_analytic_values))
+
+        if i != 0:
+            conv.append(math.log(abs(error[i])/abs(error[i-1]))/math.log(Ns[i-1]/Ns[i]))
+    
+    print(f"q(N<80) = {round(np.mean(conv[:19]),2)}")
+
+
+    # plt.plot(Ns[1:],conv)
+    # plt.ylabel("order of convergence q")
+
+            
+    plt.plot(Ns,error)
+    plt.xlabel("N")
+    plt.yscale("log")
+    plt.ylabel("log(|Error|)")
+    plt.grid(linestyle="--")
+    plt.show()
+        
 
 #################################################################
 ## GLOBALS
 
-U0 = 2
-E = 4
+U0 = 1
+E = 1
 rmax = 10
 # b = 0.5
 # b = [rmax/14*i for i in range(15)]
@@ -194,9 +242,10 @@ def main():
     # plot_greater()
     # plot_square()
     plot_difference()
+    # plot_ordo()
 
 
-    # b = 0.2
+    # b = 0
     # N = 40
     
     # theta_num=integrate(b,N)
