@@ -21,46 +21,51 @@ E = 1
 #################################################################
 ## FUNCTIONS
 
-def r_min(b,V):
+def r_min(b,V,E):
 
     def __integrand(r):
-        return 1-b**2/r**2-4*V*((a/r)**12-(a/r)**6)
+        return 1-b**2/r**2-4*V*((a/r)**12-(a/r)**6/E)
 
-    return search(__integrand,a-0.4,1e-4)
+    return search(__integrand,a-1,1e-4)
     
 
 def abs_db_dtheta(b):
     return rmax/2*math.sqrt(1-b**2/rmax**2)
+
+def cross_section(b,Theta):
+    if b > rmax:
+        return 0
+    return b/math.sin(Theta)*abs_db_dtheta(b)
 
 
 def cross_section(b,theta):
     return b/math.sin(theta)*abs_db_dtheta(b)
 
 
-def potential(r):
+def potential(r, V, a_const=5):
     if r <= rmax:
-        return 4*V0*((a/r)**12-(a/r)**6)
+        return 4*V*((a_const/r)**12-(a_const/r)**6)
     else:
         return 0
     
 
-def integral_2(p: float, b: float, rmin: float) -> float:
+def integral_2(p: float, b: float, rmin: float, E_const = E) -> float:
     """numerical setup for the second integral"""
     if p==0:
         if b == 0:
             return 0
-        return 2**0.5/b**1.5*(1-potential(p**2+rmin)/E)**0.25
+        return 2**0.5/b**1.5*(1-potential(p**2+rmin,V0)/E_const)**0.25
     else:
-        return 1/(p**2+rmin)**2/(1-b**2/(p**2+rmin)**2-potential(p**2+rmin)/E)**0.5*2*p
+        return 1/(p**2+rmin)**2/(1-b**2/(p**2+rmin)**2-potential(p**2+rmin,V0)/E_const)**0.5*2*p
 
 
-def integrate(b: float, N: int, V: float) -> float:
+def integrate(b: float, N: int, V: float, E_const = E) -> float:
     """integrates the two integrals using Boole integration"""
 
     if b == 0:
         return math.pi
 
-    rmin = r_min(b, V)
+    rmin = r_min(b, V, E_const)
 
     theta_num_1=2*b*boole(integral_1,0,(rmax-b)**0.5,N,b,rmin)
 
@@ -74,8 +79,8 @@ def plot_potential():
     rs1 = np.linspace(0.2*a,a,200)
     rs2 = np.linspace(a,3*a,200)
 
-    plt.plot(rs1,[potential(r) for r in rs1], c="C0",label=r"Positive")
-    plt.plot(rs2,[potential(r) for r in rs2], c="C1",label=r"Negative")
+    plt.plot(rs1,[potential(r,V0) for r in rs1], c="C0",label=r"Positive")
+    plt.plot(rs2,[potential(r,V0) for r in rs2], c="C1",label=r"Negative")
     # plt.plot(rs,[4*V0*(a/r)**12 for r in rs], c="C1",linestyle="dotted",label=r"$4V_0\left(\frac{a}{r}\right)^{12}$")
     # plt.plot(rs,[a**6/(a**6-r**6) for r in rs])
     plt.legend()
@@ -91,8 +96,8 @@ def plot_potential():
 def plot_rmin():
 
     bs = np.linspace(0,rmax,2000)
-    Vs = [0.5,1,2,5,10]
-    zeros = [[r_min(b,V) for b in bs] for V in Vs]
+    Vs = [0.1,0.5,1,2,5,10]
+    zeros = [[r_min(b,V, E) for b in bs] for V in Vs]
 
 
     for i,zero in enumerate(zeros):
@@ -109,15 +114,15 @@ def plot_rmin():
 def plot_integral():
 
     bs = np.linspace(0,rmax,200)
-    Vs = [0.5,1,2,5,10]
-    intes = [[],[],[],[],[]]
+    Vs = [0.1,0.5,1,2,5,10]
+    intes = [[],[],[],[],[],[]]
 
     for j,V in enumerate(Vs):
         for bi in bs:
 
             b = bi.item()
 
-            intes[j].append(integrate(b,160*4,V))
+            intes[j].append(integrate(b,160,V))
 
     for i,inte in enumerate(intes):
         plt.plot(bs,inte,color=f"C{i}",label=f"V0 = {Vs[i]}E")
@@ -130,15 +135,36 @@ def plot_integral():
     plt.show()
 
 
+def plot_cross_section():
+
+    bs = np.linspace(0,rmax,200)
+    Vs = [0.1,0.5,1,2,5,10]
+    cs = [[],[],[],[],[],[]]
+
+    for j,V in enumerate(Vs):
+        for bi in bs:
+
+            b = bi.item()
+
+            intes = integrate(b,160,V)
+            cs[j].append(abs(cross_section(b,intes)))
+    
+    for csi in cs:
+        plt.plot(bs,csi)
+    plt.yscale("log")
+    plt.show()
+
 
 def main():
     # plot_potential()
     # plot_rmin()
     plot_integral()
+    # plot_cross_section()
 
-    # print(r_min(10,V0))
+    # print(r_min(1,0))
 
 
+    # print(integrate(2*a,160,V0))
 
 if __name__ == "__main__":
     main()

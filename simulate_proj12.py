@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from project2 import potential
+from project2 import integrate as integrate_LJ
 
 #################################################################
 ## CLASSES
@@ -148,13 +149,22 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
         i1 = __find_i(xs,-rmax*1.5)
         i2 = __find_i(xs[i1+1:],-rmax*1.5,1) + i1+1
 
-    if abs(energy_fraction) > 1:
+    if LJ_flag:
+        comp = "Lennard-Jones potential"
+    elif abs(energy_fraction) > 1:
         comp = r"$E<|U_0|$"
     elif energy_fraction == 1:
         comp = r"$E=|U_0|$"
     else:
         comp = r"$E>|U_0|$"
-    if energy_fraction < 0:
+    if LJ_flag:
+        if energy_fraction > 1:
+            unit = r"$E>V_0$"
+        elif energy_fraction == 1:
+            unit = r"$E=V_0$"
+        else:
+            unit = r"$E<V_0$"
+    elif energy_fraction < 0:
         unit = r"$U_0<0$"
     else:
         unit = r"$U_0>0$"
@@ -290,15 +300,20 @@ def run_single(U0: float, E: float, rmax: float, b: float, LJ_flag: bool = False
     v0 = math.sqrt(2*E)
 
 
-    theta_sim = math.acos(vel.x/abs(vel))
+    theta_sim = np.sign(vel.y)*math.acos(vel.x/abs(vel))
 
-    if E>U0:
-        theta_anal = theta_b_greater(b,rmax,U0,E)
+    if LJ_flag:
+
+        theta_anal = integrate_LJ(b,160,U0,E)
+
     else:
-        theta_anal = theta_b_less(b,rmax,U0,E)
+        if E>U0:
+            theta_anal = theta_b_greater(b,rmax,U0,E)
+        else:
+            theta_anal = theta_b_less(b,rmax,U0,E)
 
-    print(f"Simulated: {180/math.pi*theta_sim}")
-    print(f"Theoretical: {180/math.pi*theta_anal}")
+    print(f"Simulated: {round(180/math.pi*theta_sim,2)}")
+    print(f"Theoretical: {round(180/math.pi*theta_anal,2)}")
 
     plot_path(xs,ys,rmax,b,U0/E,LJ_flag=LJ_flag)
 
@@ -307,11 +322,11 @@ def run_single(U0: float, E: float, rmax: float, b: float, LJ_flag: bool = False
 
 def main():
 
-    U0 = 2
+    U0 = 10
     E = 1
 
     rmax = 10
-    b = 8
+    b = 4
 
     # compare(U0,E,rmax)
 
