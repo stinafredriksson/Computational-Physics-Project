@@ -191,6 +191,7 @@ def main():
 
 
 
+    # print(integrate(2*a,160,V0))
 
 if __name__ == "__main__":
     main()

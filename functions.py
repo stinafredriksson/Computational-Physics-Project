@@ -111,8 +111,8 @@ def search(f, trial: float, tolerance: float, N: int = 100, positive: bool = Tru
             if debug:
                 print(f"{i+1} iterations")
             return trial
-
-        while __sign(f(trial)) == __sign(f(trial+sgn*h)):
+        j = 0
+        while __sign(f(trial)) == __sign(f(trial+sgn*h)) and j < N:
             trial = trial + sgn*h
         trial = trial - sgn*h
         h = h/2

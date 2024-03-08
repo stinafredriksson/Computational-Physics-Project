@@ -6,6 +6,9 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+from project2 import potential
+from project2 import integrate as integrate_LJ
+
 #################################################################
 ## CLASSES
 
@@ -72,28 +75,33 @@ def theta_b_greater(b: float, rmax: float, U0: float, E: float) -> float:
         raise ValueError("b cannot be below zero")
 
 
-def a(r: Vector, rmax: float, U0: float) -> float:
+def a(r: Vector, rmax: float, U0: float, a_const = 5, LJ_flag: bool = False) -> float:
+    if LJ_flag:
+        if r <= 3*a_const:
+            return  potential(r, U0, a_const)
+        else: 
+            return 0
     if r <= rmax:
         return U0/rmax
     else:
         return 0
     
 
-def rk4(particle: Particle, h: float, rmax: float, E: float, U0: float) -> None:
+def rk4(particle: Particle, h: float, rmax: float, E: float, U0: float, LJ_flag: bool = False) -> None:
 
     r = particle.r
     v = particle.v
 
-    k_v1 = a(abs(r),rmax, U0)*r.norm()
+    k_v1 = a(abs(r),rmax, U0, LJ_flag = LJ_flag)*r.norm()
     k_r1 = v
 
-    k_v2 = a(abs(r+k_r1*h/2), rmax, U0)*r.norm()
+    k_v2 = a(abs(r+k_r1*h/2), rmax, U0, LJ_flag = LJ_flag)*r.norm()
     k_r2 = v + k_v1*h/2
 
-    k_v3 = a(abs(r+k_r2*h/2), rmax, U0)*r.norm()
+    k_v3 = a(abs(r+k_r2*h/2), rmax, U0, LJ_flag = LJ_flag)*r.norm()
     k_r3 = v + k_v2*h/2
 
-    k_v4 = a(abs(r+k_r3*h), rmax, U0)*r.norm()
+    k_v4 = a(abs(r+k_r3*h), rmax, U0, LJ_flag = LJ_flag)*r.norm()
     k_r4 = v + k_v3*h
 
     particle.r = r + h/6*(k_r1 + 2*k_r2 + 2*k_r3 + k_r4)
@@ -111,7 +119,7 @@ def rk4(particle: Particle, h: float, rmax: float, E: float, U0: float) -> None:
     #     particle.v = abs(particle.v)*vel_dir
 
 
-def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fraction: float) -> None:
+def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fraction: float, a_const: float = 5, LJ_flag: bool = False) -> None:
 
     def __find_i(xs,target,r_flag=0):
 
@@ -129,7 +137,10 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
         return i
 
     fig, ax = plt.subplots()
-    potential = plt.Circle((0,0),rmax,color="k",linestyle="--", fill = False,label="Potential")
+    if LJ_flag:
+        potential_inner = plt.Circle((0,0),a_const,color="grey",linestyle="--", fill = False,label="Potential inner")
+        rmax = 3*a_const
+    potential_c = plt.Circle((0,0),rmax,color="k",linestyle="--", fill = False,label="Potential")
     source = plt.Circle((0,0),rmax/20,color="k")
 
     i1 = __find_i(xs,-rmax*0.7)
@@ -138,13 +149,22 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
         i1 = __find_i(xs,-rmax*1.5)
         i2 = __find_i(xs[i1+1:],-rmax*1.5,1) + i1+1
 
-    if abs(energy_fraction) > 1:
+    if LJ_flag:
+        comp = "Lennard-Jones potential"
+    elif abs(energy_fraction) > 1:
         comp = r"$E<|U_0|$"
     elif energy_fraction == 1:
         comp = r"$E=|U_0|$"
     else:
         comp = r"$E>|U_0|$"
-    if energy_fraction < 0:
+    if LJ_flag:
+        if energy_fraction > 1:
+            unit = r"$E>V_0$"
+        elif energy_fraction == 1:
+            unit = r"$E=V_0$"
+        else:
+            unit = r"$E<V_0$"
+    elif energy_fraction < 0:
         unit = r"$U_0<0$"
     else:
         unit = r"$U_0>0$"
@@ -153,7 +173,9 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
 
     ax.grid(linestyle="--")
     ax.hlines([b],-2*rmax,2*rmax,colors="C0",linestyles="--",label="y=b")
-    ax.add_patch(potential)
+    ax.add_patch(potential_c)
+    if LJ_flag:
+        ax.add_patch(potential_inner)
     ax.add_patch(source)
     ax.hlines([0],-2*rmax,2*rmax,colors="k",linestyles="--")
     ax.plot(xs,ys,label="Path",color="C1")
@@ -181,12 +203,14 @@ def plot_r(ts: list[float], rs: list[float], i_in: int, i_out: int, b: float) ->
     plt.show()
 
 
-def simulate(rmax: float, b: float, U0: float, E: float):
+def simulate(rmax: float, b: float, U0: float, E: float, a_const: float = 5, LJ_flag: bool = False):
 
     t = 0
     h = 0.01
     TMAX = 60
 
+    if LJ_flag:
+        rmax = 3*a_const
 
     p = Particle(Vector(-2*rmax,b), Vector(math.sqrt(2*E),0))
     rs = [abs(p.r)]
@@ -210,7 +234,7 @@ def simulate(rmax: float, b: float, U0: float, E: float):
             i_out = i
             in_flag = False
 
-        rk4(p,h,rmax,E,U0)
+        rk4(p,h,rmax,E,U0, LJ_flag = LJ_flag)
 
         rs.append(abs(p.r))
         xs.append(p.r.x)
@@ -227,7 +251,7 @@ def simulate(rmax: float, b: float, U0: float, E: float):
     return ts,rs,[xs,ys],[i_in,i_out],p.v
 
 
-def compare(U0: float, E: float, rmax: float):
+def compare(U0: float, E: float, rmax: float, LJ_flag: bool = False):
 
     ta = []
     tc = []
@@ -241,7 +265,7 @@ def compare(U0: float, E: float, rmax: float):
 
         print(f"\r[{'#'*round(i/(len(bs)-1)*20):.<20}] {round(i/(len(bs)-1)*100):02}% |{round((times[1]-times[0])*(len(bs)-1-i)):02}s|",end="\r")
 
-        ts,rs,[xs,ys],[i_in,i_out], vel = simulate(rmax,b, U0, E)
+        ts,rs,[xs,ys],[i_in,i_out], vel = simulate(rmax,b, U0, E, LJ_flag)
 
         if abs(U0/E) > 1:
             theta_anal = theta_b_less(b,rmax,U0,E)
@@ -269,31 +293,36 @@ def compare(U0: float, E: float, rmax: float):
     plt.show()
 
 
-def run_single(U0: float, E: float, rmax: float, b: float) -> None:
+def run_single(U0: float, E: float, rmax: float, b: float, LJ_flag: bool = False) -> None:
 
-    ts,rs,[xs,ys],[i_in,i_out], vel = simulate(rmax,b, U0, E)
+    ts,rs,[xs,ys],[i_in,i_out], vel = simulate(rmax,b, U0, E, LJ_flag= LJ_flag)
 
     v0 = math.sqrt(2*E)
 
 
-    theta_sim = math.acos(vel.x/abs(vel))
+    theta_sim = np.sign(vel.y)*math.acos(vel.x/abs(vel))
 
-    if E>U0:
-        theta_anal = theta_b_greater(b,rmax,U0,E)
+    if LJ_flag:
+
+        theta_anal = integrate_LJ(b,160,U0,E)
+
     else:
-        theta_anal = theta_b_less(b,rmax,U0,E)
+        if E>U0:
+            theta_anal = theta_b_greater(b,rmax,U0,E)
+        else:
+            theta_anal = theta_b_less(b,rmax,U0,E)
 
-    print(f"Simulated: {180/math.pi*theta_sim}")
-    print(f"Theoretical: {180/math.pi*theta_anal}")
+    print(f"Simulated: {round(180/math.pi*theta_sim,2)}")
+    print(f"Theoretical: {round(180/math.pi*theta_anal,2)}")
 
-    plot_path(xs,ys,rmax,b,U0/E)
+    plot_path(xs,ys,rmax,b,U0/E,LJ_flag=LJ_flag)
 
 #################################################################
 ## MAIN
 
 def main():
 
-    U0 = -2
+    U0 = 10
     E = 1
 
     rmax = 10
@@ -301,7 +330,7 @@ def main():
 
     # compare(U0,E,rmax)
 
-    run_single(U0,E,rmax,b)
+    run_single(U0,E,rmax,b,LJ_flag=True)
 
 
 #################################################################

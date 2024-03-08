@@ -78,7 +78,7 @@ def integral_2(p: float, b: float, rmin: float) -> float:
         return 1/(p**2+rmin)**2/(1-b**2/(p**2+rmin)**2-U0/E)**0.5*2*p
     
 
-def integrate(b: float, N: float) -> float:
+def integrate(b: float, N: int) -> float:
     """integrates the two integrals using Boole integration"""
     if E>U0:
         rmin = r_min(b,U0,E,rmax)
