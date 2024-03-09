@@ -81,7 +81,7 @@ def integral_2(p: float, b: float, rmin: float) -> float:
 def integrate(b: float, N: int) -> float:
     """integrates the two integrals using Boole integration"""
     if E>U0:
-        rmin = r_min(b,U0,E,rmax)
+        rmin = r_min(b, U0, E, rmax)
     else:
         rmin = rmax
     
@@ -204,6 +204,7 @@ def plot_difference() -> None:
     plt.legend()
 
     plt.figure(2)
+
     plt.title(f"{title}, {title2}")
     plt.plot(bs,error)
     plt.ylabel("|Error|")
@@ -265,8 +266,8 @@ def plot_ordo() -> None:
 #################################################################
 ## GLOBALS
 
-U0 = -1
-E = 1
+U0 = 1
+E = 2
 rmax = 10
 
 #################################################################
@@ -274,15 +275,23 @@ rmax = 10
 
 def main():
 
-    # plot_analytical(U0,E,rmax)
-    plot_square()
-    plot_difference()
+    plot_analytical(U0,E,rmax)
+    # plot_square()
+    # plot_difference()
     # plot_ordo()
 
     # b = 0
     # N = 40
     
     # theta_num=integrate(b,N)
+    # if E>U0:
+    #     theta_analytic_values=theta_b_greater(b,rmax,U0,E)
+    # else:
+    #     theta_analytic_values=theta_b_less(b,rmax)
+
+    
+    # print(f"Numerical solution: {theta_num}")
+    # print(f"Analytical solution: {theta_analytic_values}")
 
 #################################################################
 ## RUN CODE

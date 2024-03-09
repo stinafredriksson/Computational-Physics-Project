@@ -1,6 +1,7 @@
 #################################################################
 ## PROJECT 3
 #################################################################
+## IMPORTS
 
 import numpy as np
 import time
@@ -8,9 +9,21 @@ import math
 import matplotlib.pyplot as plt
 from scipy.constants import Boltzmann as k
 
-class System():
+#################################################################
+## CLASSES
 
-    def __init__(self,N, J=k, B=0, T=2) -> None:
+class System():
+    """This class handles the low-temperature behavior of a 
+    lattice material"""
+
+    def __init__(self,N: int, J: float = k, B: float = 0, T: float = 2) -> None:
+        """
+        parameters:
+            N: lattice size [int]
+            J: coupling strength [float] (usully on the order of kB)
+            B: external magnetic field strngth [float]
+            T: system temperature [float]
+        """
 
         self.N = N
         self.J = J
@@ -21,18 +34,21 @@ class System():
         # initializes the spin lattice with random spins
         self.lattice = np.random.choice([-1,1,1,1],size=(N,N))
 
-    def magnetization(self):
+
+    def magnetization(self) -> float:
         return np.sum(self.lattice)/self.N**2
     
-    def hamiltonian(self):
+
+    def hamiltonian(self) -> float:
         H = 0
         for i in range(self.N):
             for j in range(self.N):
                 H += -self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
                 H += -self.B*np.sum(self.lattice)
         return H
-    
-    def calc_dE(self,i,j):
+
+
+    def calc_dE(self,i: int, j: int) -> float:
 
         return 2*self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
 
@@ -49,11 +65,11 @@ class System():
         
         self.steps += 1
 
-    def equilibrialization(self):
+    def equilibrialization(self, Nsweeps: int = 10) -> None:
+        """sweeps for reaching thermal equilibrium
+        the sweeps are not super intensive for N<=32"""
 
-        # the sweeps are not super intensive
-
-        for _ in range(10):
+        for _ in range(Nsweeps):
 
             # do sweep
             for i in range(self.N):
@@ -61,11 +77,9 @@ class System():
                     dE = self.calc_dE(i,j)
                     if dE < 0 or np.random.rand() < np.exp(-dE/k/self.T):
                         self.lattice[i][j] = - self.lattice[i][j]
-        
-        # self.show_state()
 
 
-    def show_state(self):
+    def show_state(self) -> None:
         plt.imshow(self.lattice,cmap="Greys")
         ax = plt.gca()
         # ax.set_xticks(np.arange(0, self.N, 1))
@@ -93,6 +107,8 @@ class System():
         plt.title(f"Square Ising model with N={self.N}")
         plt.show()
 
+#################################################################
+## FUNCTIONS
 
 def estimate_order(N,J,T,steps,number=10):
 
@@ -110,8 +126,6 @@ def estimate_order(N,J,T,steps,number=10):
             system.step()
 
         order.append(abs(system.magnetization()))
-
-
 
     print("\nDone")
 
@@ -246,6 +260,9 @@ def plotting_LLsize(Magnet, Suscept, Specific):
         plt.xlabel(r"Temperature $Tk_B/J$")
         plt.show()
 
+#################################################################
+## MAIN
+
 def main():
 
     # LLsizes(Magnetization_flag=None, Susceptibility_flag=None, Specific_flag=1)
@@ -291,7 +308,35 @@ def main():
             
     #     magsup.append(np.mean(temp))
 
+    # mag = []
 
+    # system = System(32, T=2.2)
+
+    # # system.equilibrialization()
+
+    # times = [time.time(), time.time()]
+
+    # # steps = 100000
+
+    # system.equilibrialization()
+
+    # steps = 10000
+
+    # tt = list(range(0,steps))
+
+    # for i in range(steps):
+
+    #     times.pop(0)
+    #     times.append(time.time())
+    #     print(f"\r[{'#'*round(i/(steps -1)*20):.<20}] {round(i/(steps-1)*100):02}% |{round((times[1]-times[0])*(steps-1-i)):04}s|",end="\r")
+    #     # print(f"\r[{'#'*round(j/(len(Ts) -1)*20):.<20}] {round(j/(len(Ts)-1)*100):02}% |{round((times[1]-times[0])*(len(Ts)-1-i)):04}s|",end="\r")
+    #     system.step()
+
+    #     mag.append(system.magnetization())
+
+
+    # plt.plot(tt,mag)
+    # plt.show()
 
 
     # print(system.magnetization())
@@ -305,6 +350,9 @@ def main():
 
     # print(system.lattice)
     # print(lattice.magnetization())
+
+#################################################################
+## RUN CODE
 
 if __name__ == "__main__":
     main()
