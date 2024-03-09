@@ -36,7 +36,7 @@ class System():
 
         return 2*self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
 
-    def step(self):
+    def step(self): ## METROPOLIS 
         i, j = np.random.randint(self.N), np.random.randint(self.N)
         dE = self.calc_dE(i,j)
 
@@ -128,74 +128,127 @@ def order_over_T(N,J,steps):
     plt.show()
 
 
-def LLsizes():
-
-    Ts = np.linspace(1,4,20)
+def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:None):
+    Ts = np.linspace(1,4,4)
 
     sizes = [4,8,16,32]
-
     magtot = [[] for _ in range(len(sizes))]
-
     avg = 100
-
     times = [time.time(), time.time()]
+    suscept =  [[] for _ in range(len(sizes))]
+    energy_tot = [[] for _ in range(len(sizes))]
+    specific_tot = [[] for _ in range(len(sizes))]
+
 
     for t,Ti in enumerate(Ts):
 
         # averages over iterations
-        mags = [[] for _ in range(len(sizes))]
-
+        if Magnetization_flag:
+            mags = [[] for _ in range(len(sizes))]
+        if Susceptibility_flag:
+            mags_sq = [[] for _ in range(len(sizes))]
+        if Specific_flag:
+            energys = [[] for _ in range(len(sizes))]
+            specifics = [[] for _ in range(len(sizes))]
 
         for j in range(avg):
-
             times.pop(0)
             times.append(time.time())
             print(f"\r[{'#'*round((j+t*avg)/(avg*len(Ts) -1)*20):.<20}] {round((j+t*avg)/(avg*len(Ts)-1)*100):03}% |{round((times[1]-times[0])*(avg*len(Ts)-1-j-t*avg)):04}s|",end="\r")
-            
 
             # averages over steps
-            temps = [[] for _ in range(len(sizes))]
+            if Magnetization_flag:
+                temps_mag = [[] for _ in range(len(sizes))]
+                if Susceptibility_flag:
+                    temps_sus = [[] for _ in range(len(sizes))]
+            if Specific_flag:
+                temps_E = [[] for _ in range(len(sizes))]
+                temp_spec = [[] for _ in range(len(sizes))]
 
             systems = [System(size,T=Ti) for size in sizes]
 
             for system in systems:
                 system.equilibrialization()
 
-
             steps = 100
-            
             for i in range(steps):
-
                 # print(f"\r[{'#'*round(j/(len(Ts) -1)*20):.<20}] {round(j/(len(Ts)-1)*100):02}% |{round((times[1]-times[0])*(len(Ts)-1-i)):04}s|",end="\r")
-                for temp,system in zip(temps,systems):
-                    system.step()
-                    temp.append(abs(system.magnetization()))
+                for i in range(len(sizes)): # temp,system in zip(temps,systems):
+                    systems[i].step()
+                    if Magnetization_flag:
+                        M = abs(systems[i].magnetization())
+                        temps_mag[i].append(M)
+                        if Susceptibility_flag:
+                            temps_sus[i].append(M**2)
+                    if Specific_flag:
+                        E = systems[i].hamiltonian()
+                        temps_E[i].append(E)
+                        temp_spec[i].append(E**2)
+            
+            if Magnetization_flag:
+                for s in range(len(sizes)):
+                    mags[s].append(np.mean(temps_mag[s]))
+                    if Susceptibility_flag:
+                        mags_sq[s].append(np.mean(temps_sus[s]))
+            
+            if Specific_flag:
+                for s in range(len(sizes)):
+                    energys[s].append(np.mean(temps_E[s]))
+                    specifics[s].append(np.mean(temp_spec[s]))
 
+        if Magnetization_flag:
             for s in range(len(sizes)):
-                mags[s].append(np.mean(temps[s]))
-
-        for s in range(len(sizes)):
-            magtot[s].append(np.mean(mags[s]))
+                magtot[s].append(np.mean(mags[s]))
+                if Susceptibility_flag:
+                    suscept[s].append(np.mean(mags_sq[s]-np.array(mags[s])**2))
+        if Specific_flag:
+            for s in range(len(sizes)):
+                energy_tot[s].append(np.mean(energys[s]))
+                specific_tot[s].append(np.mean(specifics[s])-np.array(energy_tot[s])**2)
 
     print("\nDone")
 
     # print(system32.accepted/system32.steps)
-    labels = [f"N={size}"for size in sizes]
-    for i,magt in enumerate(magtot):
-        plt.plot(Ts,magt,color = f"C{i}",linestyle="--")
-        plt.scatter(Ts,magt,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
-    plt.grid(linestyle="--")
-    plt.legend()
-    plt.title("Magnetization over temperature for different grid sizes")
-    plt.ylabel("Magnetization |M|")
-    plt.xlabel(r"Temperature $Tk_B/J$")
-    # print(np.mean(mags))
+    plotting_LLsize(magtot, suscept, specific_tot)
 
-    plt.show()
+def plotting_LLsize(Magnet, Suscept, Specific):
+    sizes = [4,8,16,32]
+    Ts = np.linspace(1,4,20)
+    labels = [f"N={size}"for size in sizes]
+    if len(Magnet[0])>0:
+        for i,magt in enumerate(Magnet):
+            plt.plot(Ts,magt,color = f"C{i}",linestyle="--")
+            plt.scatter(Ts,magt,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+        plt.grid(linestyle="--")
+        plt.legend()
+        plt.title("Magnetization over temperature for different grid sizes")
+        plt.ylabel("Magnetization |M|")
+        plt.xlabel(r"Temperature $Tk_B/J$")
+        plt.show()
+    if len(Suscept[0])>0:
+        for i,suscept in enumerate(Suscept):
+            plt.plot(Ts,suscept,color = f"C{i}",linestyle="--")
+            plt.scatter(Ts,suscept,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+        plt.grid(linestyle="--")
+        plt.legend()
+        plt.title("Susceptibility over temperature for different grid sizes")
+        plt.ylabel(r"Susceptibility $\chi$")
+        plt.xlabel(r"Temperature $Tk_B/J$")
+        plt.show()
+    if len(Specific[0])>0:
+        for i,specific in enumerate(Specific):
+            plt.plot(Ts,specific,color = f"C{i}",linestyle="--")
+            plt.scatter(Ts,specific,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+        plt.grid(linestyle="--")
+        plt.legend()
+        plt.title("Specific heat over temperature for different grid sizes")
+        plt.ylabel(r"Specific heat")
+        plt.xlabel(r"Temperature $Tk_B/J$")
+        plt.show()
 
 def main():
 
-    LLsizes()
+    # LLsizes(Magnetization_flag=None, Susceptibility_flag=None, Specific_flag=1)
 
     # print(estimate_order(16,1,100,10000))
 
