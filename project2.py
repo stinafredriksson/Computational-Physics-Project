@@ -179,15 +179,16 @@ def plot_integral():
     plt.yticks([-2*math.pi,-math.pi,0,math.pi],[r"-2$\pi$",r"-$\pi$",0,r"$\pi$"])
     plt.xticks([0,a,2*a,3*a],[0,r"$a$",r"$2a$",r"$r_\text{max}$"])
     plt.grid(linestyle="--")
+    plt.title(r"$\Theta$ over $b$ with Lennard Jones potential for different $E$")
     plt.show()
 
 
 def main():
     # plot_potential()
     # plot_rmin()
-    # plot_integral()
+    plot_integral()
     # print(r_min(10,V0))
-    plot_cross_section()
+    # plot_cross_section()
 
 
 
