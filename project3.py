@@ -142,13 +142,14 @@ def order_over_T(N,J,steps):
     plt.show()
 
 
-def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:None):
-    Ts = np.linspace(1,4,4)
+def LLsizes(Magnetization_flag: bool = True, Susceptibility_flag: bool = False, Specific_flag: bool = False):
+    Ts = np.linspace(1,4,20)
 
     sizes = [4,8,16,32]
-    magtot = [[] for _ in range(len(sizes))]
     avg = 100
     times = [time.time(), time.time()]
+    
+    magtot = [[] for _ in range(len(sizes))]
     suscept =  [[] for _ in range(len(sizes))]
     energy_tot = [[] for _ in range(len(sizes))]
     specific_tot = [[] for _ in range(len(sizes))]
@@ -157,7 +158,7 @@ def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:N
     for t,Ti in enumerate(Ts):
 
         # averages over iterations
-        if Magnetization_flag:
+        if Magnetization_flag or Susceptibility_flag:
             mags = [[] for _ in range(len(sizes))]
         if Susceptibility_flag:
             mags_sq = [[] for _ in range(len(sizes))]
@@ -171,7 +172,7 @@ def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:N
             print(f"\r[{'#'*round((j+t*avg)/(avg*len(Ts) -1)*20):.<20}] {round((j+t*avg)/(avg*len(Ts)-1)*100):03}% |{round((times[1]-times[0])*(avg*len(Ts)-1-j-t*avg)):04}s|",end="\r")
 
             # averages over steps
-            if Magnetization_flag:
+            if Magnetization_flag or Susceptibility_flag:
                 temps_mag = [[] for _ in range(len(sizes))]
                 if Susceptibility_flag:
                     temps_sus = [[] for _ in range(len(sizes))]
@@ -189,7 +190,7 @@ def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:N
                 # print(f"\r[{'#'*round(j/(len(Ts) -1)*20):.<20}] {round(j/(len(Ts)-1)*100):02}% |{round((times[1]-times[0])*(len(Ts)-1-i)):04}s|",end="\r")
                 for i in range(len(sizes)): # temp,system in zip(temps,systems):
                     systems[i].step()
-                    if Magnetization_flag:
+                    if Magnetization_flag or Susceptibility_flag:
                         M = abs(systems[i].magnetization())
                         temps_mag[i].append(M)
                         if Susceptibility_flag:
@@ -199,7 +200,7 @@ def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:N
                         temps_E[i].append(E)
                         temp_spec[i].append(E**2)
             
-            if Magnetization_flag:
+            if Magnetization_flag or Susceptibility_flag:
                 for s in range(len(sizes)):
                     mags[s].append(np.mean(temps_mag[s]))
                     if Susceptibility_flag:
@@ -210,7 +211,7 @@ def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:N
                     energys[s].append(np.mean(temps_E[s]))
                     specifics[s].append(np.mean(temp_spec[s]))
 
-        if Magnetization_flag:
+        if Magnetization_flag or Susceptibility_flag:
             for s in range(len(sizes)):
                 magtot[s].append(np.mean(mags[s]))
                 if Susceptibility_flag:
@@ -223,11 +224,9 @@ def LLsizes(Magnetization_flag: None, Susceptibility_flag: None, Specific_flag:N
     print("\nDone")
 
     # print(system32.accepted/system32.steps)
-    plotting_LLsize(magtot, suscept, specific_tot)
+    plotting_LLsize(magtot, suscept, specific_tot, sizes, Ts)
 
-def plotting_LLsize(Magnet, Suscept, Specific):
-    sizes = [4,8,16,32]
-    Ts = np.linspace(1,4,20)
+def plotting_LLsize(Magnet, Suscept, Specific, sizes, Ts):
     labels = [f"N={size}"for size in sizes]
     if len(Magnet[0])>0:
         for i,magt in enumerate(Magnet):
@@ -265,7 +264,7 @@ def plotting_LLsize(Magnet, Suscept, Specific):
 
 def main():
 
-    # LLsizes(Magnetization_flag=None, Susceptibility_flag=None, Specific_flag=1)
+    LLsizes(Magnetization_flag=False, Susceptibility_flag=True, Specific_flag=False)
 
     # print(estimate_order(16,1,100,10000))
 
