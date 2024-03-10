@@ -8,6 +8,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+## local imports
 from project2 import potential
 from project2 import integrate as integrate_LJ
 
@@ -42,9 +43,7 @@ class Vector():
     
     def __rmul__(self,other):
         return self.__mul__(other)
-    
-    def dot(self,other):
-        return self.x*other.x + self.y*other.y
+
 
 class Particle():
     def __init__(self, r: Vector = Vector(0,0), v: Vector = Vector(0,0)) -> None:
@@ -77,7 +76,9 @@ def theta_b_greater(b: float, rmax: float, U0: float, E: float) -> float:
         raise ValueError("b cannot be below zero")
 
 
-def a(r: Vector, rmax: float, U0: float, a_const = 5, LJ_flag: bool = False) -> float:
+def a(r: Vector, rmax: float, U0: float, a_const: float = 5, LJ_flag: bool = False) -> float:
+    """calculating the acceleration of a particle in the potential"""
+
     if LJ_flag:
         if r <= 3*a_const:
             return  potential(r, U0, a_const)
@@ -90,6 +91,7 @@ def a(r: Vector, rmax: float, U0: float, a_const = 5, LJ_flag: bool = False) -> 
     
 
 def rk4(particle: Particle, h: float, rmax: float, E: float, U0: float, LJ_flag: bool = False) -> None:
+    """rk4 algorithm for advancing time"""
 
     r = particle.r
     v = particle.v
@@ -121,7 +123,9 @@ def rk4(particle: Particle, h: float, rmax: float, E: float, U0: float, LJ_flag:
     #     particle.v = abs(particle.v)*vel_dir
 
 
-def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fraction: float, a_const: float = 5, LJ_flag: bool = False) -> None:
+def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fraction: float,
+              a_const: float = 5, LJ_flag: bool = False) -> None:
+    """plots hte path of a particle previously calculated and saved in xs and ys"""
 
     def __find_i(xs,target,r_flag=0):
 
@@ -139,9 +143,11 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
         return i
 
     fig, ax = plt.subplots()
+
     if LJ_flag:
         potential_inner = plt.Circle((0,0),a_const,color="grey",linestyle="--", fill = False,label="Potential inner")
         rmax = 3*a_const
+
     potential_c = plt.Circle((0,0),rmax,color="k",linestyle="--", fill = False,label="Potential")
     source = plt.Circle((0,0),rmax/20,color="k")
 
@@ -159,6 +165,7 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
         comp = r"$E=|U_0|$"
     else:
         comp = r"$E>|U_0|$"
+
     if LJ_flag:
         if energy_fraction > 1:
             unit = r"$E>V_0$"
@@ -172,7 +179,6 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
         unit = r"$U_0>0$"
 
     plt.title(comp + ", " + unit)
-
     ax.grid(linestyle="--")
     ax.hlines([b],-2*rmax,2*rmax,colors="C0",linestyles="--",label="y=b")
     ax.add_patch(potential_c)
@@ -193,6 +199,7 @@ def plot_path(xs: list[float], ys: list[float], rmax: float, b: float, energy_fr
 
 
 def plot_r(ts: list[float], rs: list[float], i_in: int, i_out: int, b: float) -> None:
+    """plots the radial distance over time"""
 
     plt.title("E > |U_0|")
     plt.plot(ts, rs, label="r")
@@ -206,6 +213,7 @@ def plot_r(ts: list[float], rs: list[float], i_in: int, i_out: int, b: float) ->
 
 
 def simulate(rmax: float, b: float, U0: float, E: float, a_const: float = 5, LJ_flag: bool = False):
+    """simulates a particle deflection by a central potential using rk4"""
 
     t = 0
     h = 0.01
@@ -247,13 +255,11 @@ def simulate(rmax: float, b: float, U0: float, E: float, a_const: float = 5, LJ_
 
         i += 1
 
-        # if abs(p.r) < 0.01:
-        #     break
-
     return ts,rs,[xs,ys],[i_in,i_out],p.v
 
 
 def compare(U0: float, E: float, rmax: float, LJ_flag: bool = False):
+    """comparing the analytical to the simulated values of Theta"""
 
     ta = []
     tc = []
@@ -274,18 +280,13 @@ def compare(U0: float, E: float, rmax: float, LJ_flag: bool = False):
         else:
             theta_anal = theta_b_greater(b,rmax,U0,E)
 
-        # ts,rs,[xs2,ys2],[i_in2,i_out2] = simulate(rmax,b, 4, 2)
-
         theta_comp = math.acos(vel.x/abs(vel))
 
         ta.append(theta_anal)
         tc.append(theta_comp)
 
-        # print(f"Theta_anal = {round(180/math.pi*theta_anal,2)}")
-        # print(f"Theta_comp = {round(180/math.pi*theta_comp,2)}")
-
-    # print(rmax*math.sqrt(1-U0/E))
-
+    ## plotting
+    ########
     plt.plot(bs,ta,label="Analytical")
     plt.plot(bs,tc,label="Numerical")
     plt.xlabel("b")
@@ -293,14 +294,13 @@ def compare(U0: float, E: float, rmax: float, LJ_flag: bool = False):
     plt.grid(linestyle="--")
     plt.legend()
     plt.show()
+    ########
 
 
 def run_single(U0: float, E: float, rmax: float, b: float, LJ_flag: bool = False) -> None:
+    """runs a single particle towards the central potential"""
 
     ts,rs,[xs,ys],[i_in,i_out], vel = simulate(rmax,b, U0, E, LJ_flag= LJ_flag)
-
-    v0 = math.sqrt(2*E)
-
 
     theta_sim = np.sign(vel.y)*math.acos(vel.x/abs(vel))
 
@@ -333,7 +333,6 @@ def main():
     # compare(U0,E,rmax)
 
     run_single(U0,E,rmax,b,LJ_flag=True)
-
 
 #################################################################
 ## RUN CODE
