@@ -37,6 +37,7 @@ def boole(f, a1: float, a2:float, N:int, b, rmin) -> float:
 
 def theta_b_less(b: float, rmax: float, U0: float, E: float) -> float:
     """analytical solution for E<=U0"""
+    
     if U0 < 0:
         return theta_b_greater(b,rmax,U0,E)
     return math.pi - 2*math.asin(b/rmax)
@@ -60,6 +61,7 @@ def theta_b_greater(b: float, rmax: float, U0: float, E: float) -> float:
 
 def integral_1(p: float, b: float, rmin: float) -> float:
     """numerical setup for the first integral"""
+
     if p==0:
         if b == 0:
             return 0
@@ -70,6 +72,7 @@ def integral_1(p: float, b: float, rmin: float) -> float:
 
 def integral_2(p: float, b: float, rmin: float) -> float:
     """numerical setup for the second integral"""
+
     if p==0:
         if b == 0:
             return 0
@@ -80,6 +83,7 @@ def integral_2(p: float, b: float, rmin: float) -> float:
 
 def integrate(b: float, N: int) -> float:
     """integrates the two integrals using Boole integration"""
+
     if E>U0:
         rmin = r_min(b, U0, E, rmax)
     else:
@@ -96,6 +100,7 @@ def integrate(b: float, N: int) -> float:
 
 
 def plot_analytical(U0: float, E:float, rmax:float) -> None:
+    """this function plots the analytical function"""
 
     if 0 < E < U0:
         raise ValueError("Cannot use this function for $E<U_0$") 
@@ -121,6 +126,7 @@ def plot_analytical(U0: float, E:float, rmax:float) -> None:
 
 
 def plot_square() -> None:
+    """this function plots the square potential"""
 
     def __square(r):
         if r<=rmax:
@@ -141,6 +147,7 @@ def plot_square() -> None:
 
 
 def plot_difference() -> None:
+    """plots the analytical and the numerical values and the error"""
 
     bs = np.linspace(0,rmax,2000)
 
@@ -158,11 +165,11 @@ def plot_difference() -> None:
         bi = bnp.item() # needed conversion numpy.float64 -> native float
 
         ## error bar
-        ####
+        ########
         times.pop(0)
         times.append(time.time())
         print(f"\r[{'#'*round(i/(len(bs)-1)*20):.<20}] {round(i/(len(bs)-1)*100):02}% |{round((times[1]-times[0])*(len(bs)-1-i)):02}s|",end="\r")
-        ####
+        ########
 
         theta_num = integrate(bi, N)
 
@@ -175,6 +182,8 @@ def plot_difference() -> None:
         numerical.append(theta_num)
         theory.append(theta_analytic_values)
     
+    ## plotting the numerical and analytical values
+    ########
     plt.figure(1)
     plt.plot(bs,numerical,color="C0",linestyle="--",label="Numerical")
     plt.plot(bs,theory,color="C1",linestyle="dotted",label="Analytical")
@@ -197,14 +206,14 @@ def plot_difference() -> None:
         title2 = r"$U_0>0$"
 
     plt.title(f"{title}, {title2}")
-
     plt.grid(linestyle="--")
-
     # plt.plot(bs,imag)
     plt.legend()
+    ########
 
+    ## plotting absolute error
+    ########
     plt.figure(2)
-
     plt.title(f"{title}, {title2}")
     plt.plot(bs,error)
     plt.ylabel("|Error|")
@@ -223,21 +232,25 @@ def plot_difference() -> None:
     plt.yscale("log")
     plt.grid(linestyle="--")
     plt.show()
+    ########
 
 
 def plot_ordo() -> None:
+    """plots the error propagation and order of convergence"""
 
-    b = 8
+    b = 8 # the error propagation depends on b, as seen in the report
 
     Ns = [k*4 for k in range(10,101)]
 
     error = []
-
     conv = []
 
     for i, N in enumerate(Ns):
 
-        print(f"{round(i/len(Ns)*100)}",end="\r")
+        ## error bar
+        ########
+        print(f"\r[{'#'*round(i/(len(Ns)-1)*20):.<20}] {round(i/(len(Ns)-1)*100):02}%",end="\r")
+        ########
 
         theta_num = integrate(b, N)
 
