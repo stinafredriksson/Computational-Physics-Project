@@ -16,7 +16,7 @@ class System():
     """This class handles the low-temperature behavior of a 
     lattice material"""
 
-    def __init__(self,N: int, J: float = k, B: float = 0, T: float = 2) -> None:
+    def __init__(self, N: int, J: float = k, B: float = 0, T: float = 2) -> None:
         """
         parameters:
             N: lattice size [int]
@@ -31,36 +31,46 @@ class System():
         self.T = T
         self.steps = 0
         self.accepted = 0
+
         # initializes the spin lattice with random spins
         self.lattice = np.random.choice([-1,1,1,1],size=(N,N))
 
 
     def magnetization(self) -> float:
+        """calculates the magnetization of the lattice"""
+
         return np.sum(self.lattice)/self.N**2
     
 
     def hamiltonian(self) -> float:
+        """calculates the energy of the lattice"""
+
         H = 0
         for i in range(self.N):
             for j in range(self.N):
                 H += -self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
+                
+                # this if-statement saves a lot of computing time when B=0
                 if self.B:
                     H += -self.B*np.sum(self.lattice)
         return H
 
 
-    def calc_dE(self,i: int, j: int) -> float:
+    def calc_dE(self, i: int, j: int) -> float:
+        """calculates the change in energy from a spin flip at i,j"""
 
         return 2*self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
 
 
-    def step(self): ## METROPOLIS 
+    def step(self) -> None:
+        """a step in the Metropolis algorithm using a random next site"""
+
+        # random next site
         i, j = np.random.randint(self.N), np.random.randint(self.N)
+        
         dE = self.calc_dE(i,j)
 
-        # input("")
-        # print(np.exp(-dE/k/self.T))
-
+        # accept the move or not
         if dE < 0 or np.random.rand() < np.exp(-dE/k/self.T):
             self.accepted += 1
             self.lattice[i][j] = - self.lattice[i][j]
@@ -83,6 +93,8 @@ class System():
 
 
     def show_state(self) -> None:
+        """shows a figure of the state with binary spins"""
+        
         plt.imshow(self.lattice,cmap="Greys")
         ax = plt.gca()
         # ax.set_xticks(np.arange(0, self.N, 1))
@@ -145,14 +157,15 @@ def order_over_T(N,J,steps):
     plt.show()
 
 
-def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100, flags: list[bool] = [True, False, False, False]):
+def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
+            flags: list[bool] = [True, False, False, False]) -> None:
     
     Magnetization_flag = flags[0]
     Susceptibility_flag = flags[1]
     Specific_flag = flags[2]
     Cumulant_flag = flags[3]
 
-    Ts = np.linspace(2.2,2.35,10)
+    Ts = np.linspace(2.2,2.35,15)
 
     times = [time.time(), time.time()]
     
