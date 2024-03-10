@@ -142,18 +142,22 @@ def order_over_T(N,J,steps):
     plt.show()
 
 
-def LLsizes(Magnetization_flag: bool = True, Susceptibility_flag: bool = False, Specific_flag: bool = False):
+def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100, flags: list[bool] = [True, False, False, False]):
+    
+    Magnetization_flag = flags[0]
+    Susceptibility_flag = flags[1]
+    Specific_flag = flags[2]
+    Cumulant_flag = flags[3]
+
     Ts = np.linspace(1,4,20)
 
-    sizes = [4,8,16,32]
-    avg = 100
     times = [time.time(), time.time()]
     
     magtot = [[] for _ in range(len(sizes))]
-    suscept =  [[] for _ in range(len(sizes))]
+    sus_tot =  [[] for _ in range(len(sizes))]
     energy_tot = [[] for _ in range(len(sizes))]
     specific_tot = [[] for _ in range(len(sizes))]
-
+    cumul_tot = [[] for _ in range(len(sizes))]
 
     for t,Ti in enumerate(Ts):
 
@@ -161,72 +165,98 @@ def LLsizes(Magnetization_flag: bool = True, Susceptibility_flag: bool = False, 
         if Magnetization_flag or Susceptibility_flag:
             mags = [[] for _ in range(len(sizes))]
         if Susceptibility_flag:
-            mags_sq = [[] for _ in range(len(sizes))]
+            sus = [[] for _ in range(len(sizes))]
         if Specific_flag:
             energys = [[] for _ in range(len(sizes))]
             specifics = [[] for _ in range(len(sizes))]
+        if Cumulant_flag:
+            cumulants = [[] for _ in range(len(sizes))]
 
-        for j in range(avg):
+        for j in range(n_avgs):
             times.pop(0)
             times.append(time.time())
-            print(f"\r[{'#'*round((j+t*avg)/(avg*len(Ts) -1)*20):.<20}] {round((j+t*avg)/(avg*len(Ts)-1)*100):03}% |{round((times[1]-times[0])*(avg*len(Ts)-1-j-t*avg)):04}s|",end="\r")
+            print(f"\r[{'#'*round((j+t*n_avgs)/(n_avgs*len(Ts) -1)*20):.<20}] {round((j+t*n_avgs)/(n_avgs*len(Ts)-1)*100):03}% |{round((times[1]-times[0])*(n_avgs*len(Ts)-1-j-t*n_avgs)):04}s|",end="\r")
 
             # averages over steps
             if Magnetization_flag or Susceptibility_flag:
                 temps_mag = [[] for _ in range(len(sizes))]
                 if Susceptibility_flag:
-                    temps_sus = [[] for _ in range(len(sizes))]
+                    temps_sq = [[] for _ in range(len(sizes))]
             if Specific_flag:
                 temps_E = [[] for _ in range(len(sizes))]
                 temp_spec = [[] for _ in range(len(sizes))]
+            if Cumulant_flag:
+                temps_m2 = [[] for _ in range(len(sizes))]
+                temps_m4 = [[] for _ in range(len(sizes))]
 
             systems = [System(size,T=Ti) for size in sizes]
 
+            # lets the system approach thermal equilibrium
             for system in systems:
                 system.equilibrialization()
 
-            steps = 100
-            for i in range(steps):
-                # print(f"\r[{'#'*round(j/(len(Ts) -1)*20):.<20}] {round(j/(len(Ts)-1)*100):02}% |{round((times[1]-times[0])*(len(Ts)-1-i)):04}s|",end="\r")
-                for i in range(len(sizes)): # temp,system in zip(temps,systems):
-                    systems[i].step()
-                    if Magnetization_flag or Susceptibility_flag:
-                        M = abs(systems[i].magnetization())
-                        temps_mag[i].append(M)
-                        if Susceptibility_flag:
-                            temps_sus[i].append(M**2)
-                    if Specific_flag:
-                        E = systems[i].hamiltonian()
-                        temps_E[i].append(E)
-                        temp_spec[i].append(E**2)
-            
+            steps = 1000
+
+            ## runs steps in the simulation to sample data
+            ########
+            for step in range(steps):
+                if not step % 10:
+                    for i in range(len(sizes)): # temp,system in zip(temps,systems):
+                        systems[i].step()
+                        if Magnetization_flag or Susceptibility_flag:
+                            M = abs(systems[i].magnetization())
+                            temps_mag[i].append(M)
+                            if Susceptibility_flag:
+                                temps_sq[i].append(M**2)
+                        if Specific_flag:
+                            E = systems[i].hamiltonian()
+                            temps_E[i].append(E)
+                            temp_spec[i].append(E**2)
+                        if Cumulant_flag:
+                            M = abs(systems[i].magnetization())
+                            temps_m2[i].append(M**2)
+                            temps_m4[i].append(M**4)
+            ########
+
+            ## averages the samples taken during the steps
+            ########
             if Magnetization_flag or Susceptibility_flag:
                 for s in range(len(sizes)):
                     mags[s].append(np.mean(temps_mag[s]))
                     if Susceptibility_flag:
-                        mags_sq[s].append(np.mean(temps_sus[s]))
-            
+                        sus[s].append(np.mean(temps_sq[s])-np.mean(temps_mag[s])**2)
             if Specific_flag:
                 for s in range(len(sizes)):
                     energys[s].append(np.mean(temps_E[s]))
-                    specifics[s].append(np.mean(temp_spec[s]))
+                    specifics[s].append(np.mean((temp_spec[s])-np.mean(temps_E[s])**2)/k)
+            if Cumulant_flag:
+                for s in range(len(sizes)):
+                    cumulants[s].append(1-np.mean(temps_m4[s])/(3*np.mean(temps_m2[s])**2))
+            ########
 
+        ## averages over a number of realizations
+        ########
         if Magnetization_flag or Susceptibility_flag:
             for s in range(len(sizes)):
                 magtot[s].append(np.mean(mags[s]))
                 if Susceptibility_flag:
-                    suscept[s].append(np.mean(mags_sq[s]-np.array(mags[s])**2))
+                    sus_tot[s].append(np.mean(sus[s]))
         if Specific_flag:
             for s in range(len(sizes)):
                 energy_tot[s].append(np.mean(energys[s]))
-                specific_tot[s].append(np.mean(specifics[s])-np.array(energy_tot[s])**2)
+                specific_tot[s].append(np.mean(specifics[s]))
+        if Cumulant_flag:
+            for s in range(len(sizes)):
+                cumul_tot[s].append(np.mean(cumulants[s]))
+
 
     print("\nDone")
 
     # print(system32.accepted/system32.steps)
-    plotting_LLsize(magtot, suscept, specific_tot, sizes, Ts)
+    plotting_LLsize(magtot, sus_tot, specific_tot,cumul_tot, sizes, Ts)
 
-def plotting_LLsize(Magnet, Suscept, Specific, sizes, Ts):
+
+def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[float]):
     labels = [f"N={size}"for size in sizes]
     if len(Magnet[0])>0:
         for i,magt in enumerate(Magnet):
@@ -237,7 +267,6 @@ def plotting_LLsize(Magnet, Suscept, Specific, sizes, Ts):
         plt.title("Magnetization over temperature for different grid sizes")
         plt.ylabel("Magnetization |M|")
         plt.xlabel(r"Temperature $Tk_B/J$")
-        plt.show()
     if len(Suscept[0])>0:
         for i,suscept in enumerate(Suscept):
             plt.plot(Ts,suscept,color = f"C{i}",linestyle="--")
@@ -247,7 +276,6 @@ def plotting_LLsize(Magnet, Suscept, Specific, sizes, Ts):
         plt.title("Susceptibility over temperature for different grid sizes")
         plt.ylabel(r"Susceptibility $\chi$")
         plt.xlabel(r"Temperature $Tk_B/J$")
-        plt.show()
     if len(Specific[0])>0:
         for i,specific in enumerate(Specific):
             plt.plot(Ts,specific,color = f"C{i}",linestyle="--")
@@ -255,16 +283,25 @@ def plotting_LLsize(Magnet, Suscept, Specific, sizes, Ts):
         plt.grid(linestyle="--")
         plt.legend()
         plt.title("Specific heat over temperature for different grid sizes")
-        plt.ylabel(r"Specific heat")
+        plt.ylabel(r"Specific heat$/k_B$")
         plt.xlabel(r"Temperature $Tk_B/J$")
-        plt.show()
+    if len(Cumul[0])>0:
+        for i,cum in enumerate(Cumul):
+            plt.plot(Ts,cum,color = f"C{i}",linestyle="--")
+            plt.scatter(Ts,cum,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+        plt.grid(linestyle="--")
+        plt.legend()
+        plt.title("Cumulant over temperature for different grid sizes")
+        plt.ylabel(r"Cumulant")
+        plt.xlabel(r"Temperature $Tk_B/J$")
+    plt.show()
 
 #################################################################
 ## MAIN
 
 def main():
 
-    LLsizes(Magnetization_flag=False, Susceptibility_flag=True, Specific_flag=False)
+    LLsizes(flags=[False,False,False,True], n_avgs=100)
 
     # print(estimate_order(16,1,100,10000))
 
