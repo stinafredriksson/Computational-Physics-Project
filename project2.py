@@ -11,14 +11,6 @@ from project1 import integral_1
 from functions import search
 
 #################################################################
-## GLOBALS
-
-a = 1
-rmax = 3*a
-V0 = 1
-
-
-#################################################################
 ## FUNCTIONS
 
 def boole(f, a1: float, a2:float, N:int, b, rmin, E) -> float:
@@ -42,7 +34,9 @@ def boole(f, a1: float, a2:float, N:int, b, rmin, E) -> float:
                    12*sum([f(a1+k*h,b,rmin) for k in range(2,N,4)])+\
                    14*sum([f(a1+k*h,b,rmin) for k in range(4,N,4)]))
 
-def r_min(b,E):
+
+def r_min(b: float, E: float) -> float:
+    """rmin estimation for Lennard-Jones"""
 
     def __integrand(r):
         return 1-b**2/r**2-4*V0*((a/r)**12-(a/r)**6)/E
@@ -50,18 +44,25 @@ def r_min(b,E):
     return search(__integrand,a-0.4,1e-10)
 
 
+def cross_section(b: float, Theta: float, db_dTheta: float) -> float:
+    """calculates the cross section"""
 
-def cross_section(b,Theta,db_dTheta):
     if b>rmax:
         return 0
     else:
         return b/math.sin(Theta)*abs(db_dTheta)
 
-def differentiate(b, N, E):
-    h=0.01
+
+def differentiate(b: float, N: int, E: float) -> float:
+    """differentiates the limit angle for a Lennard-Jones potential"""
+
+    h = 0.01 # gives a good approximation
     return (integrate(b+h,N,E)-integrate(b-h,N,E))/(2*h)
 
-def potential_E(r, E):
+
+def potential_E(r: float, E: float) -> float:
+    """the definition of the Lennard-Jones potential"""
+
     if r <= rmax:
         return 4*V0*((a/r)**12-(a/r)**6)/E
     else:
@@ -87,12 +88,13 @@ def integrate(b: float, N: int, E) -> float:
     rmin = r_min(b, E)
 
     theta_num_1=2*b*boole(integral_1,0,(rmax-b)**0.5,N,b,rmin,None)
-
     theta_num_2=2*b*boole(integral_2,0,(rmax-rmin)**0.5,N,b,rmin,E)
     
     return theta_num_1-np.real(theta_num_2)
 
-def plot_cross_section():
+
+def plot_cross_section() -> None:
+    """plotting the cross section with a varying b and V"""
 
     bs = np.linspace(0.1,rmax-0.1,200)
     Vs = [0.1,0.5,1,5,10,100]
@@ -109,6 +111,8 @@ def plot_cross_section():
             Theta = integrate(b,N,E)
             cs[j].append(abs(cross_section(b,Theta,dTheta_db**-1)))
     
+    ## plotting
+    ########
     for i,csi in enumerate(cs):
         plt.plot(bs,csi,color=f"C{i}",label=f"E={Vs[i]}V0")
     plt.yscale("log")
@@ -118,17 +122,20 @@ def plot_cross_section():
     plt.ylabel(r"$d\sigma/d\Omega$")
     plt.title(r"Cross-Section vs $b$")
     plt.show()
+    ########
 
 
-def plot_potential():
+def plot_potential() -> None:
+    """plotting the Lennard-Jones potential"""
+
     E=1
     rs1 = np.linspace(0.2*a,a,200)
     rs2 = np.linspace(a,3*a,200)
 
+    ## plotting
+    ########
     plt.plot(rs1,[potential_E(r,E) for r in rs1], c="C0",label=r"Positive")
     plt.plot(rs2,[potential_E(r,E) for r in rs2], c="C1",label=r"Negative")
-    # plt.plot(rs,[4*V0*(a/r)**12 for r in rs], c="C1",linestyle="dotted",label=r"$4V_0\left(\frac{a}{r}\right)^{12}$")
-    # plt.plot(rs,[a**6/(a**6-r**6) for r in rs])
     plt.legend()
     plt.grid(linestyle="--")
     plt.xlabel("r")
@@ -137,15 +144,18 @@ def plot_potential():
     plt.yticks(color = "w")
     plt.xticks([0,a,3*a], [0,r"$a$",r"$r_\text{max}$"])
     plt.show()
+    ########
     
 
-def plot_rmin():
+def plot_rmin() -> None:
+    """plotting the rmin over varying b and V"""
 
     bs = np.linspace(0,rmax,200)
     Vs = [0.1,0.5,1,5,10,100]
     zeros = [[r_min(b,V*V0) for b in bs] for V in Vs] # E=V*V0
 
-
+    ## plotting
+    ########
     for i,zero in enumerate(zeros):
         plt.plot(bs,zero,c=f"C{i}",label=f"E={Vs[i]}V0")
     plt.grid(linestyle="--")
@@ -155,9 +165,11 @@ def plot_rmin():
     plt.title(r"$r_{min}$ over $b$")
     plt.legend()
     plt.show()
+    ########
 
 
-def plot_integral():
+def plot_integral() -> None:
+    """plotting the angle over varying b and V"""
 
     bs = np.linspace(0,rmax,200)
     Vs = [0.1,0.5,1,5,10,100]
@@ -171,6 +183,8 @@ def plot_integral():
 
             intes[j].append(integrate(b,160*4,E))
 
+    ## plotting
+    ########
     for i,inte in enumerate(intes):
         plt.plot(bs,inte,color=f"C{i}",label=f"E={Vs[i]}V0")
     plt.legend()
@@ -181,7 +195,17 @@ def plot_integral():
     plt.grid(linestyle="--")
     plt.title(r"$\Theta$ over $b$ with Lennard Jones potential for different $E$")
     plt.show()
+    ########
 
+#################################################################
+## GLOBALS
+
+a = 1
+rmax = 3*a
+V0 = 1
+
+#################################################################
+## MAIN
 
 def main():
     # plot_potential()
@@ -190,9 +214,8 @@ def main():
     # print(r_min(10,V0))
     # plot_cross_section()
 
-
-
-    # print(integrate(2*a,160,V0))
+#################################################################
+## RUN CODE
 
 if __name__ == "__main__":
     main()
