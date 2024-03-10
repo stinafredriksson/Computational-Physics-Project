@@ -44,13 +44,15 @@ class System():
         for i in range(self.N):
             for j in range(self.N):
                 H += -self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
-                H += -self.B*np.sum(self.lattice)
+                if self.B:
+                    H += -self.B*np.sum(self.lattice)
         return H
 
 
     def calc_dE(self,i: int, j: int) -> float:
 
         return 2*self.J*self.lattice[i][j]*(self.lattice[(i+1)%self.N][j]+self.lattice[i-1][j]+self.lattice[i][(j+1)%self.N]+self.lattice[i][j-1])
+
 
     def step(self): ## METROPOLIS 
         i, j = np.random.randint(self.N), np.random.randint(self.N)
@@ -64,6 +66,7 @@ class System():
             self.lattice[i][j] = - self.lattice[i][j]
         
         self.steps += 1
+
 
     def equilibrialization(self, Nsweeps: int = 10) -> None:
         """sweeps for reaching thermal equilibrium
@@ -149,7 +152,7 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100, flags: list[bool]
     Specific_flag = flags[2]
     Cumulant_flag = flags[3]
 
-    Ts = np.linspace(1,4,20)
+    Ts = np.linspace(2.2,2.35,10)
 
     times = [time.time(), time.time()]
     
@@ -195,27 +198,26 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100, flags: list[bool]
             for system in systems:
                 system.equilibrialization()
 
-            steps = 1000
+            steps = 10
 
             ## runs steps in the simulation to sample data
             ########
             for step in range(steps):
-                if not step % 10:
-                    for i in range(len(sizes)): # temp,system in zip(temps,systems):
-                        systems[i].step()
-                        if Magnetization_flag or Susceptibility_flag:
-                            M = abs(systems[i].magnetization())
-                            temps_mag[i].append(M)
-                            if Susceptibility_flag:
-                                temps_sq[i].append(M**2)
-                        if Specific_flag:
-                            E = systems[i].hamiltonian()
-                            temps_E[i].append(E)
-                            temp_spec[i].append(E**2)
-                        if Cumulant_flag:
-                            M = abs(systems[i].magnetization())
-                            temps_m2[i].append(M**2)
-                            temps_m4[i].append(M**4)
+                for s in range(len(sizes)): # temp,system in zip(temps,systems):
+                    systems[s].equilibrialization(Nsweeps=4)
+                    if Magnetization_flag or Susceptibility_flag:
+                        M = abs(systems[s].magnetization())
+                        temps_mag[s].append(M)
+                        if Susceptibility_flag:
+                            temps_sq[s].append(M**2)
+                    if Specific_flag:
+                        E = systems[s].hamiltonian()
+                        temps_E[s].append(E)
+                        temp_spec[s].append(E**2)
+                    if Cumulant_flag:
+                        M = abs(systems[s].magnetization())
+                        temps_m2[s].append(M**2)
+                        temps_m4[s].append(M**4)
             ########
 
             ## averages the samples taken during the steps
@@ -301,7 +303,26 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
 
 def main():
 
-    LLsizes(flags=[False,False,False,True], n_avgs=100)
+    LLsizes(flags=[False,False,False,True], n_avgs=40)
+
+    # sys = [System(32, T = 1.5) for _ in range(10)]
+    # m= [[] for _ in range(len(sys))]
+
+    # ll = list(range(100000))
+
+    # for _ in ll:
+    #     for s in range(len(sys)):
+    #         sys[s].step()
+    #         m[s].append(abs(sys[s].magnetization()))
+
+    # for s in range(len(sys)):
+    #     plt.plot(ll,m[s])
+    #     print(sys[s].accepted/sys[s].steps)
+    # plt.show()
+    # sys.show_state()
+        
+    # print(np.mean(m))
+    # print(f"\nTime: {time.time()-t1}")
 
     # print(estimate_order(16,1,100,10000))
 
