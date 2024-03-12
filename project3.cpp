@@ -167,12 +167,9 @@ void System::sweep(int Nsweeps)
     }
 }
 
-int* linspace(double low, double high, int steps)
+double* linspace(double low, double high, int steps)
 {
-    // std::cout << "heyy" << std::endl;
-    int* arr = new int[steps];
-
-    std::cout << "Starting Calculations" << std::endl;
+    double* arr = new double[steps];
 
     int i = 0;
     for (double T = low; T<=high; T = T+(high-low)/static_cast<double>(steps))
@@ -184,6 +181,28 @@ int* linspace(double low, double high, int steps)
     return arr;
 }
 
+void loading(int j, int total)
+{
+
+    double frac = static_cast<double>(j)/static_cast<double>(total);
+
+    int percentage = frac*100 + 0.5;
+
+    std::cout << "[";
+
+    for (int i = 0; i <= frac*20; i++)
+    {
+        std::cout << "#";
+    }
+    for (int i = 0; i < (1-frac)*20; i++)
+    {
+        std::cout << "-";
+    }
+
+    std::cout << "] [" << percentage << "%]\r";
+    std::cout.flush();
+}
+
 void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 {
     int sizes[] = {4,8,16,32};
@@ -192,7 +211,7 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
     double low = 1.;
     double high = 4.;
 
-    int* Ts = linspace(low,high,T_steps);
+    double* Ts = linspace(low,high,T_steps);
 
     double mag_tot[num_size][T_steps];
     double sus_tot[num_size][T_steps];
@@ -207,6 +226,8 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
         double energy[num_size];
         double specific[num_size];
         double cumul[num_size];
+
+        loading(i,T_steps);
 
         for (int s = 0; s<num_size;s++)
         {
@@ -229,7 +250,7 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 
             for (int s = 0; s<num_size;s++)
             {
-                systems[s].sweep(100);
+                systems[s].sweep(200);
                 temp_mag[s] = 0.;
                 temp_mag2[s] = 0.;
                 temp_mag4[s] = 0.;
@@ -251,8 +272,8 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 
                     temp_mag[s] += M;
                     temp_mag2[s] += M2;
-                    temp_E[s] += E;
-                    temp_spec[s] += E2;
+                    temp_E[s] += E/k;
+                    temp_spec[s] += E2/k/k;
                     temp_mag4[s] += M4;
 
                     systems[s].sweep(4);
@@ -268,11 +289,11 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
                 double E_mean = temp_E[s]/static_cast<double>(n_samples);
                 double E2_mean = temp_spec[s]/static_cast<double>(n_samples);
 
-                mags[s] = M_mean;
-                sus[s] = M2_mean-std::pow(M_mean,2);
-                energy[s] = E_mean;
-                specific[s] = E2_mean-std::pow(E_mean,2);
-                cumul[s] = 1.-M4_mean/(3.*std::pow(M2_mean,2));
+                mags[s] += M_mean;
+                sus[s] += M2_mean-std::pow(M_mean,2);
+                energy[s] += E_mean;
+                specific[s] += E2_mean-std::pow(E_mean,2);
+                cumul[s] += 1.-M4_mean/(3.*std::pow(M2_mean,2));
             }
 
         }
@@ -294,8 +315,12 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 
         std::ofstream file(filename);
 
+        file << "T,M,X,E,Cv,U4\n";
+
         for (int i=0; i<T_steps;i++)
-        {
+        {   
+            file << Ts[i];
+            file << ","; 
             file << mag_tot[s][i];
             file << ","; 
             file << sus_tot[s][i];
@@ -317,8 +342,8 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 int main()
 {
     
-    int n_real = 10;
-    int n_samples = 10;
+    int n_real = 40;
+    int n_samples = 100;
     int T_steps = 20;
 
     LLsizes(n_real,n_samples,T_steps);

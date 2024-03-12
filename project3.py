@@ -5,7 +5,9 @@
 
 import numpy as np
 import time
-import math
+import csv
+from numba import jit
+from numba.experimental import jitclass
 import matplotlib.pyplot as plt
 from scipy.constants import Boltzmann as k
 
@@ -76,7 +78,7 @@ class System():
             self.lattice[i][j] = - self.lattice[i][j]
         
         self.steps += 1
-
+            
 
     def equilibrialization(self, Nsweeps: int = 10) -> None:
         """sweeps for reaching thermal equilibrium
@@ -165,7 +167,7 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
     Specific_flag = flags[2]
     Cumulant_flag = flags[3]
 
-    Ts = np.linspace(2.2,2.35,15)
+    Ts = np.linspace(1,4,20)
 
     times = [time.time(), time.time()]
     
@@ -211,7 +213,7 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
             for system in systems:
                 system.equilibrialization()
 
-            steps = 10
+            steps = 40
 
             ## runs steps in the simulation to sample data
             ########
@@ -222,10 +224,12 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
                         M = abs(systems[s].magnetization())
                         temps_mag[s].append(M)
                         if Susceptibility_flag:
+                            systems[s].equilibrialization(Nsweeps=2)
                             temps_sq[s].append(M**2)
                     if Specific_flag:
                         E = systems[s].hamiltonian()
                         temps_E[s].append(E)
+                        systems[s].equilibrialization(Nsweeps=2)
                         temp_spec[s].append(E**2)
                     if Cumulant_flag:
                         M = abs(systems[s].magnetization())
@@ -242,7 +246,7 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
                         sus[s].append(np.mean(temps_sq[s])-np.mean(temps_mag[s])**2)
             if Specific_flag:
                 for s in range(len(sizes)):
-                    energys[s].append(np.mean(temps_E[s]))
+                    energys[s].append(np.mean(temps_E[s])/k)
                     specifics[s].append(np.mean((temp_spec[s])-np.mean(temps_E[s])**2)/k)
             if Cumulant_flag:
                 for s in range(len(sizes)):
@@ -274,6 +278,7 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
 def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[float]):
     labels = [f"N={size}"for size in sizes]
     if len(Magnet[0])>0:
+        plt.figure(1)
         for i,magt in enumerate(Magnet):
             plt.plot(Ts,magt,color = f"C{i}",linestyle="--")
             plt.scatter(Ts,magt,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -283,6 +288,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.ylabel("Magnetization |M|")
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Suscept[0])>0:
+        plt.figure(2)
         for i,suscept in enumerate(Suscept):
             plt.plot(Ts,suscept,color = f"C{i}",linestyle="--")
             plt.scatter(Ts,suscept,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -292,6 +298,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.ylabel(r"Susceptibility $\chi$")
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Specific[0])>0:
+        plt.figure(3)
         for i,specific in enumerate(Specific):
             plt.plot(Ts,specific,color = f"C{i}",linestyle="--")
             plt.scatter(Ts,specific,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -301,6 +308,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.ylabel(r"Specific heat$/k_B$")
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Cumul[0])>0:
+        plt.figure(4)
         for i,cum in enumerate(Cumul):
             plt.plot(Ts,cum,color = f"C{i}",linestyle="--")
             plt.scatter(Ts,cum,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -311,12 +319,58 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.xlabel(r"Temperature $Tk_B/J$")
     plt.show()
 
+
+def read_csv(filename):
+    T = []
+    M = []
+    X = []
+    E = []
+    Cv = []
+    U4 = []
+
+    with open(filename, "r") as csvfile:
+        reader = csv.reader(csvfile)
+
+        next(reader)
+
+        for row in reader:
+            T.append(float(row[0]))
+            M.append(float(row[1]))
+            X.append(float(row[2]))
+            E.append(float(row[3]))
+            Cv.append(float(row[4]))
+            U4.append(float(row[5]))
+    return T,M,X,E,Cv,U4
+
+def plot_CPP(sizes):
+
+    Ms = []
+    Xs = []
+    Es = []
+    Cvs = []
+    U4s = []
+
+    for size in sizes:
+        filename = f"output_N{size}.csv"
+        T,M,X,E,Cv,U4 = read_csv(filename)
+        Ms.append(M)
+        Xs.append(X)
+        Es.append(E)
+        Cvs.append(Cv)
+        U4s.append(U4)
+    
+    plotting_LLsize(Ms,Xs,Cvs,U4s,sizes,T)
+
 #################################################################
 ## MAIN
 
 def main():
 
-    LLsizes(flags=[False,False,False,True], n_avgs=40)
+    # LLsizes(flags=[False,True,False,False], n_avgs=10)
+
+    sizes = [4,8,16,32]
+
+    plot_CPP(sizes)
 
     # sys = [System(32, T = 1.5) for _ in range(10)]
     # m= [[] for _ in range(len(sys))]
