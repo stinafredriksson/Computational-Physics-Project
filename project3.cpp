@@ -1,6 +1,8 @@
 #include <random>
 #include <cmath>
 #include <iostream>
+#include <fstream>
+#include <string>
 
 using namespace std;
 
@@ -167,7 +169,10 @@ void System::sweep(int Nsweeps)
 
 int* linspace(double low, double high, int steps)
 {
+    // std::cout << "heyy" << std::endl;
     int* arr = new int[steps];
+
+    std::cout << "Starting Calculations" << std::endl;
 
     int i = 0;
     for (double T = low; T<=high; T = T+(high-low)/static_cast<double>(steps))
@@ -181,7 +186,7 @@ int* linspace(double low, double high, int steps)
 
 void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 {
-    // int sizes[] = {4,8,16,32};
+    int sizes[] = {4,8,16,32};
     int num_size = 4;
 
     double low = 1.;
@@ -203,6 +208,15 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
         double specific[num_size];
         double cumul[num_size];
 
+        for (int s = 0; s<num_size;s++)
+        {
+            mags[s] = 0.;
+            sus[s] = 0.;
+            energy[s] = 0.;
+            specific[s] = 0.;
+            cumul[s] = 0.;
+        }
+
         for (int j = 0; j < n_real; j++)
         {
             double temp_mag[num_size];
@@ -211,12 +225,16 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
             double temp_spec[num_size];
             double temp_mag4[num_size];
 
-
             System systems[] = {System(4,k,0,Ts[i]),System(8,k,0,Ts[i]),System(16,k,0,Ts[i]),System(32,k,0,Ts[i])};
 
             for (int s = 0; s<num_size;s++)
             {
                 systems[s].sweep(100);
+                temp_mag[s] = 0.;
+                temp_mag2[s] = 0.;
+                temp_mag4[s] = 0.;
+                temp_E[s] = 0.;
+                temp_spec[s] = 0.;
             }
 
             for (int l = 0; l < n_samples; l++)
@@ -245,6 +263,7 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
             for (int s = 0; s<num_size;s++)
             {
                 double M_mean = temp_mag[s]/static_cast<double>(n_samples);
+                std::cout << M_mean << std::endl;
                 double M2_mean = temp_mag2[s]/static_cast<double>(n_samples);
                 double M4_mean = temp_mag4[s]/static_cast<double>(n_samples);
                 double E_mean = temp_E[s]/static_cast<double>(n_samples);
@@ -269,16 +288,40 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
             cumul_tot[s][i] = cumul[s]/static_cast<double>(n_real);
         }
     }
+
+    for (int s = 0; s < num_size; s++)
+    {
+        std::string filename = "output_N" + std::to_string(sizes[s]) + ".csv";
+
+        std::ofstream file(filename);
+
+        for (int i=0; i<T_steps;i++)
+        {
+            file << mag_tot[s][i];
+            file << ","; 
+            file << sus_tot[s][i];
+            file << ","; 
+            file << energy_tot[s][i];
+            file << ","; 
+            file << specific_tot[s][i];
+            file << ","; 
+            file << cumul_tot[s][i];
+            file << "\n";
+        }
+        
+
+        file.close();
+    }    
+
 }
 
 int main()
 {
-
     // int N = 32;
     // double B = 0.;
     // double T = 1;
 
-    LLsizes(10,10,100);
+    LLsizes(10,10,10);
 
     // System S = System(N,k,B,T);
 
