@@ -263,7 +263,6 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
             for (int s = 0; s<num_size;s++)
             {
                 double M_mean = temp_mag[s]/static_cast<double>(n_samples);
-                std::cout << M_mean << std::endl;
                 double M2_mean = temp_mag2[s]/static_cast<double>(n_samples);
                 double M4_mean = temp_mag4[s]/static_cast<double>(n_samples);
                 double E_mean = temp_E[s]/static_cast<double>(n_samples);
@@ -317,11 +316,12 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 
 int main()
 {
-    // int N = 32;
-    // double B = 0.;
-    // double T = 1;
+    
+    int n_real = 10;
+    int n_samples = 10;
+    int T_steps = 20;
 
-    LLsizes(10,10,10);
+    LLsizes(n_real,n_samples,T_steps);
 
     // System S = System(N,k,B,T);
 
