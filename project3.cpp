@@ -69,6 +69,17 @@ void System::setup(int N_in, double J_in, double B_in, double T_in)
     B = B_in;
     T = T_in;
 
+    double frac;
+
+    if (J_in > 0)
+    {
+        frac = 0.75;
+    }
+    else
+    {
+        frac = 0.5;
+    }
+
     lattice = new int*[N];
     for (int i = 0; i < N; ++i) {
         lattice[i] = new int[N];
@@ -83,7 +94,7 @@ void System::setup(int N_in, double J_in, double B_in, double T_in)
         for (int j = 0; j < N; ++j) {
             // int spin = 1;
             double rand = dist(gen);
-            int spin = (rand < 0.75) ? 1 : -1;
+            int spin = (rand < frac) ? 1 : -1;
 
             // int spin = dist(gen);
             // if (spin == 0)
@@ -378,7 +389,7 @@ int main()
     int T_steps = 40;
 
     double B = 0;
-    double J = k;
+    double J = -k;
 
     LLsizes(J,B,n_real,n_samples,T_steps);
     
