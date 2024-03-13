@@ -125,8 +125,10 @@ double System::hamiltonian()
     double H = 0.;
     
 
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
+    for (int i = 0; i < N; ++i) 
+    {
+        for (int j = 0; j < N; ++j) 
+        {
             int i_down = i;
             int j_down = j;
             
@@ -141,6 +143,20 @@ double System::hamiltonian()
 
             H = H - J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]);
         }
+    }
+
+    if (B != 0)
+    {
+        double tot_spin = 0;
+
+        for (int i = 0; i < N; ++i) 
+        {
+            for (int j = 0; j < N; ++j) 
+            {
+                tot_spin += 1.*lattice[i][j];
+            }
+        }
+        H = H-B*tot_spin;
     }
     
     return H;
@@ -161,7 +177,7 @@ double System::calc_dE(int i, int j)
         j_down = N-1;
     }
 
-    return 2.*J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]);
+    return 2.*J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]) + 2.*B*lattice[i][j];
 }
 
 void System::step()
