@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const double k = 1.3806503e-23;
+const double k = 1.380649e-23;
 
 class System {
 public:
@@ -25,7 +25,7 @@ public:
     double magnetization();
     double hamiltonian();
     void sweep(int Nsweeps);
-    void step();
+    void step(int Nsteps);
     void setup(int N_in, double J_in, double B_in, double T_in);
     
 private:
@@ -48,7 +48,7 @@ System::System(int N_in, double J_in, double B_in, double T_in) {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> dist(0, 1);
+    std::uniform_real_distribution<double> dist(0., 1.);
 
     // Initialize 2D lattice
     for (int i = 0; i < N; ++i) {
@@ -87,7 +87,7 @@ void System::setup(int N_in, double J_in, double B_in, double T_in)
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> dist(0, 1);
+    std::uniform_real_distribution<double> dist(0., 1.);
 
     // Initialize 2D lattice
     for (int i = 0; i < N; ++i) {
@@ -117,7 +117,7 @@ double System::magnetization()
         }
     }
 
-    return total_M/(static_cast<double>(N)*static_cast<double>(N));
+    return static_cast<double>(total_M)/(static_cast<double>(N)*static_cast<double>(N));
 }
 
 double System::hamiltonian()
@@ -177,45 +177,49 @@ double System::calc_dE(int i, int j)
         j_down = N-1;
     }
 
-    return 2.*J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]) + 2.*B*lattice[i][j];
+    int Snn = lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down];
+
+    return 2.*J*static_cast<double>(lattice[i][j])*static_cast<double>(Snn) + 2.*B*static_cast<double>(lattice[i][j]);
 }
 
-void System::step()
+void System::step(int Nsteps)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> dist(0, N-1);
-    std::uniform_real_distribution<double> dist2(0, 1);
+    std::uniform_real_distribution<> dist2(0., 1.);
 
-    int i = dist(gen);
-    int j = dist(gen);
-
-    double dE = calc_dE(i,j);
-
-    if (dE < 0 || dist2(gen)<std::exp(-dE/k/T))
+    for (int n = 0; n < Nsteps; n++)
     {
-        lattice[i][j] = -lattice[i][j];
+        int i = dist(gen);
+        int j = dist(gen);
+
+        double dE = calc_dE(i,j);
+
+        if (dE < 0 || dist2(gen)<std::exp(-dE/T/k))
+        {
+            lattice[i][j] = -lattice[i][j];
+        }
     }
 }
 
 void System::sweep(int Nsweeps)
 {
-
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> dist2(0, 1);
+    std::uniform_real_distribution<> dist2(0., 1.);
 
     for (int i = 1; i <= Nsweeps; i++)
     {
         for (int i = 0; i < N; ++i) {
-            for (int j = 0; j < N; ++j) {
-                
+            for (int j = 0; j < N; ++j) 
+            {
                 double dE = calc_dE(i,j);
 
                 if (dE < 0 || dist2(gen)<std::exp(-dE/k/T))
-                    {
-                        lattice[i][j] = -lattice[i][j];
-                    }
+                {
+                    lattice[i][j] = -lattice[i][j];
+                }
             }
         }
     }
@@ -223,14 +227,16 @@ void System::sweep(int Nsweeps)
 
 double* linspace(double low, double high, int steps)
 {
-    double* arr = new double[steps];
+    double* arr = new double[steps+1];
 
     int i = 0;
-    for (double T = low; T<=high; T = T+(high-low)/static_cast<double>(steps))
+    for (double T = low; T<high; T = T+(high-low)/static_cast<double>(steps))
     {
         arr[i] = T;
         i++;
     }
+
+    arr[steps] = high;
 
     return arr;
 }
@@ -266,6 +272,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
     double high = 4.;
 
     double* Ts = linspace(low,high,T_steps);
+    T_steps = T_steps + 1;
 
     double mag_tot[num_size][T_steps];
     double sus_tot[num_size][T_steps];
@@ -308,7 +315,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
             for (int s = 0; s<num_size;s++)
             {
                 systems[s].setup(sizes[s],J,B,Ts[i]);
-                systems[s].sweep(200);
+                systems[s].sweep(20);
                 temp_mag[s] = 0.;
                 temp_mag2[s] = 0.;
                 temp_mag4[s] = 0.;
@@ -322,10 +329,8 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
                 {
                     double M = std::abs(systems[s].magnetization());
                     double E = std::abs(systems[s].hamiltonian());
-                    // systems[s].sweep(2);
                     double E2 = std::pow(systems[s].hamiltonian(),2);
                     double M2 = std::abs(std::pow(systems[s].magnetization(),2));
-                    // systems[s].sweep(2);
                     double M4 = std::abs(std::pow(systems[s].magnetization(),4));
 
                     temp_mag[s] += M;
@@ -334,7 +339,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
                     temp_spec[s] += E2;
                     temp_mag4[s] += M4;
 
-                    systems[s].sweep(2);
+                    systems[s].step(systems[s].N*systems[s].N*10);
                 }
             }
 
@@ -348,7 +353,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
                 double E2_mean = temp_spec[s]/static_cast<double>(n_samples);
 
                 mags[s] += M_mean;
-                sus[s] += (M2_mean-std::pow(M_mean,2))/(Ts[i]);
+                sus[s] += (M2_mean-std::pow(M_mean,2));
                 energy[s] += E_mean/k;
                 specific[s] += (E2_mean-std::pow(E_mean,2))/(k*k);
                 cumul[s] += 1.-M4_mean/(3.*std::pow(M2_mean,2));
@@ -400,12 +405,12 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
 int main()
 {
     
-    int n_real = 20;
-    int n_samples = 1000;
+    int n_real = 10;
+    int n_samples = 200;
     int T_steps = 40;
 
     double B = 0;
-    double J = -k;
+    double J = k;
 
     LLsizes(J,B,n_real,n_samples,T_steps);
     
