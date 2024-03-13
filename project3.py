@@ -6,8 +6,6 @@
 import numpy as np
 import time
 import csv
-from numba import jit
-from numba.experimental import jitclass
 import matplotlib.pyplot as plt
 from scipy.constants import Boltzmann as k
 
