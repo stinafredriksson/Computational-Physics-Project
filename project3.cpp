@@ -20,23 +20,19 @@ public:
 
     // Constructor
     System(); // Default constructor
-    System(int N, double J, double B, double T); // Constructor with parameters
+    System(int N_in, double J_in, double B_in, double T_in);
 
     double magnetization();
     double hamiltonian();
     void sweep(int Nsweeps);
     void step();
-
-//     // Member functions (methods)
-//     void memberFunction1();
-//     void memberFunction2(dataType parameter);
+    void setup(int N_in, double J_in, double B_in, double T_in);
     
 private:
     double calc_dE(int i, int j);
-//     // Private member variables and functions
-//     dataType privateMemberVariable;
-//     void privateMemberFunction();
 };
+
+System::System(){}
 
 System::System(int N_in, double J_in, double B_in, double T_in) {
 
@@ -52,21 +48,52 @@ System::System(int N_in, double J_in, double B_in, double T_in) {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(0, 1);
+    std::uniform_real_distribution<double> dist(0, 1);
 
-    // Initialize 2D list
+    // Initialize 2D lattice
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            int spin = dist(gen);
-            if (spin == 0)
-            {
-                spin = -1;
-            }
+            double rand = dist(gen);
+            int spin = (rand < 0.75) ? 1 : -1;
 
             lattice[i][j] = spin;
         }
     }
 
+}
+
+void System::setup(int N_in, double J_in, double B_in, double T_in)
+{
+    N = N_in;
+    J = J_in;
+    B = B_in;
+    T = T_in;
+
+    lattice = new int*[N];
+    for (int i = 0; i < N; ++i) {
+        lattice[i] = new int[N];
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dist(0, 1);
+
+    // Initialize 2D lattice
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            // int spin = 1;
+            double rand = dist(gen);
+            int spin = (rand < 0.75) ? 1 : -1;
+
+            // int spin = dist(gen);
+            // if (spin == 0)
+            // {
+            //     spin = -1;
+            // }
+
+            lattice[i][j] = spin;
+        }
+    }
 }
 
 double System::magnetization()
@@ -190,11 +217,11 @@ void loading(int j, int total)
 
     std::cout << "[";
 
-    for (int i = 0; i <= frac*20; i++)
+    for (int i = 0; i < frac*20; i++)
     {
         std::cout << "#";
     }
-    for (int i = 0; i < (1-frac)*20; i++)
+    for (int i = 0; i <= (1-frac)*20; i++)
     {
         std::cout << "-";
     }
@@ -203,7 +230,7 @@ void loading(int j, int total)
     std::cout.flush();
 }
 
-void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
+void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, int T_steps = 100)
 {
     int sizes[] = {4,8,16,32};
     int num_size = 4;
@@ -227,8 +254,6 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
         double specific[num_size];
         double cumul[num_size];
 
-        loading(i,T_steps);
-
         for (int s = 0; s<num_size;s++)
         {
             mags[s] = 0.;
@@ -240,16 +265,22 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 
         for (int j = 0; j < n_real; j++)
         {
+
+            loading(i*n_real+j,T_steps*n_real);
+
             double temp_mag[num_size];
             double temp_mag2[num_size];
             double temp_E[num_size];
             double temp_spec[num_size];
             double temp_mag4[num_size];
 
-            System systems[] = {System(4,k,0,Ts[i]),System(8,k,0,Ts[i]),System(16,k,0,Ts[i]),System(32,k,0,Ts[i])};
+            // System systems[] = {System(4,k,0,Ts[i]),System(8,k,0,Ts[i]),System(16,k,0,Ts[i]),System(32,k,0,Ts[i])};
+
+            System systems[num_size];
 
             for (int s = 0; s<num_size;s++)
             {
+                systems[s].setup(sizes[s],J,B,Ts[i]);
                 systems[s].sweep(200);
                 temp_mag[s] = 0.;
                 temp_mag2[s] = 0.;
@@ -263,20 +294,20 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
                 for (int s = 0; s<num_size;s++)
                 {
                     double M = std::abs(systems[s].magnetization());
-                    double E = systems[s].hamiltonian();
-                    systems[s].sweep(2);
+                    double E = std::abs(systems[s].hamiltonian());
+                    // systems[s].sweep(2);
                     double E2 = std::pow(systems[s].hamiltonian(),2);
                     double M2 = std::abs(std::pow(systems[s].magnetization(),2));
-                    systems[s].sweep(2);
+                    // systems[s].sweep(2);
                     double M4 = std::abs(std::pow(systems[s].magnetization(),4));
 
                     temp_mag[s] += M;
                     temp_mag2[s] += M2;
-                    temp_E[s] += E/k;
-                    temp_spec[s] += E2/k/k;
+                    temp_E[s] += E;
+                    temp_spec[s] += E2;
                     temp_mag4[s] += M4;
 
-                    systems[s].sweep(4);
+                    systems[s].sweep(2);
                 }
             }
 
@@ -290,9 +321,9 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
                 double E2_mean = temp_spec[s]/static_cast<double>(n_samples);
 
                 mags[s] += M_mean;
-                sus[s] += M2_mean-std::pow(M_mean,2);
-                energy[s] += E_mean;
-                specific[s] += E2_mean-std::pow(E_mean,2);
+                sus[s] += (M2_mean-std::pow(M_mean,2))/(Ts[i]);
+                energy[s] += E_mean/k;
+                specific[s] += (E2_mean-std::pow(E_mean,2))/(k*k);
                 cumul[s] += 1.-M4_mean/(3.*std::pow(M2_mean,2));
             }
 
@@ -342,17 +373,14 @@ void LLsizes(int n_real = 10, int n_samples = 10, int T_steps = 100)
 int main()
 {
     
-    int n_real = 40;
-    int n_samples = 100;
-    int T_steps = 20;
+    int n_real = 20;
+    int n_samples = 1000;
+    int T_steps = 40;
 
-    LLsizes(n_real,n_samples,T_steps);
+    double B = 0;
+    double J = k;
 
-    // System S = System(N,k,B,T);
-
-    // S.sweep(1000);
-
-    // std::cout << S.magnetization() << std::endl;
-
+    LLsizes(J,B,n_real,n_samples,T_steps);
+    
     return 0;
 }
