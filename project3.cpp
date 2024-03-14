@@ -16,30 +16,51 @@ public:
     double B;
     double T;
 
+    bool bath_flag;
+
     int **lattice;
 
     // Constructor
     System(); // Default constructor
-    System(int N_in, double J_in, double B_in, double T_in);
+    System(int N_in, double J_in, double B_in, double T_in, bool bflag);
 
     double magnetization();
     double hamiltonian();
     void sweep(int Nsweeps);
     void step(int Nsteps);
-    void setup(int N_in, double J_in, double B_in, double T_in);
+    void setup(int N_in, double J_in, double B_in, double T_in, bool bflag);
     
 private:
     double calc_dE(int i, int j);
+    double calc_pi(int i, int j);
 };
 
 System::System(){}
 
-System::System(int N_in, double J_in, double B_in, double T_in) {
+System::System(int N_in, double J_in, double B_in, double T_in, bool bflag = false) {
 
     N = N_in;
     J = J_in;
     B = B_in;
     T = T_in;
+
+    bath_flag = bflag;
+
+    double frac;
+
+    if (J_in > 0)
+    {
+        frac = 0.75;
+    }
+    else
+    {
+        frac = 0.5;
+    }
+
+    lattice = new int*[N];
+    for (int i = 0; i < N; ++i) {
+        lattice[i] = new int[N];
+    }
 
     lattice = new int*[N];
     for (int i = 0; i < N; ++i) {
@@ -54,7 +75,7 @@ System::System(int N_in, double J_in, double B_in, double T_in) {
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
             double rand = dist(gen);
-            int spin = (rand < 0.75) ? 1 : -1;
+            int spin = (rand < frac) ? 1 : -1;
 
             lattice[i][j] = spin;
         }
@@ -62,12 +83,14 @@ System::System(int N_in, double J_in, double B_in, double T_in) {
 
 }
 
-void System::setup(int N_in, double J_in, double B_in, double T_in)
+void System::setup(int N_in, double J_in, double B_in, double T_in, bool bflag = false)
 {
     N = N_in;
     J = J_in;
     B = B_in;
     T = T_in;
+
+    bath_flag = bflag;
 
     double frac;
 
@@ -96,12 +119,6 @@ void System::setup(int N_in, double J_in, double B_in, double T_in)
             double rand = dist(gen);
             int spin = (rand < frac) ? 1 : -1;
 
-            // int spin = dist(gen);
-            // if (spin == 0)
-            // {
-            //     spin = -1;
-            // }
-
             lattice[i][j] = spin;
         }
     }
@@ -113,11 +130,11 @@ double System::magnetization()
 
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            total_M = total_M + lattice[i][j];
+            total_M += lattice[i][j];
         }
     }
 
-    return static_cast<double>(total_M)/(static_cast<double>(N)*static_cast<double>(N));
+    return static_cast<double>(total_M);
 }
 
 double System::hamiltonian()
@@ -141,7 +158,7 @@ double System::hamiltonian()
                 j_down = N-1;
             }
 
-            H = H - J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]);
+            H += - J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]);
         }
     }
 
@@ -156,7 +173,7 @@ double System::hamiltonian()
                 tot_spin += 1.*lattice[i][j];
             }
         }
-        H = H-B*tot_spin;
+        H += -B*tot_spin;
     }
     
     return H;
@@ -182,6 +199,27 @@ double System::calc_dE(int i, int j)
     return 2.*J*static_cast<double>(lattice[i][j])*static_cast<double>(Snn) + 2.*B*static_cast<double>(lattice[i][j]);
 }
 
+double System::calc_pi(int i, int j)
+{
+    int i_down = i;
+    int j_down = j;
+
+    if (i == 0)
+    {
+        i_down = N-1;
+    }
+    if (j == 0)
+    {
+        j_down = N-1;
+    }
+
+    int Snn = lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down];
+
+    double exponential = std::exp(2*J/(k*T)*Snn);
+
+    return exponential/(1+exponential);
+}
+
 void System::step(int Nsteps)
 {
     std::random_device rd;
@@ -194,11 +232,27 @@ void System::step(int Nsteps)
         int i = dist(gen);
         int j = dist(gen);
 
-        double dE = calc_dE(i,j);
-
-        if (dE < 0 || dist2(gen)<std::exp(-dE/T/k))
+        if (bath_flag)
         {
-            lattice[i][j] = -lattice[i][j];
+            double pi = calc_pi(i,j);
+
+            if (dist2(gen) < pi)
+            {
+                lattice[i][j] = 1;
+            }
+            else
+            {
+                lattice[i][j] = -1;
+            }
+        }
+        else
+        {
+            double dE = calc_dE(i,j);
+
+            if (dE < 0 || dist2(gen)<std::exp(-dE/T/k))
+            {
+                lattice[i][j] = -lattice[i][j];
+            }
         }
     }
 }
@@ -214,11 +268,28 @@ void System::sweep(int Nsweeps)
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) 
             {
-                double dE = calc_dE(i,j);
-
-                if (dE < 0 || dist2(gen)<std::exp(-dE/k/T))
+                if (bath_flag)
                 {
-                    lattice[i][j] = -lattice[i][j];
+                    double pi = calc_pi(i,j);
+
+                    if (dist2(gen) < pi)
+                    {
+                        lattice[i][j] = 1;
+                    }
+                    else
+                    {
+                        lattice[i][j] = -1;
+                    }
+                }
+
+                else
+                {
+                    double dE = calc_dE(i,j);
+
+                    if (dE < 0 || dist2(gen)<std::exp(-dE/k/T))
+                    {
+                        lattice[i][j] = -lattice[i][j];
+                    }
                 }
             }
         }
@@ -271,6 +342,12 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
     double low = 1.;
     double high = 4.;
 
+    // if (J<0)
+    // {
+    //     low = 1;
+    //     high = 3.;
+    // }
+
     double* Ts = linspace(low,high,T_steps);
     T_steps = T_steps + 1;
 
@@ -308,8 +385,6 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
             double temp_spec[num_size];
             double temp_mag4[num_size];
 
-            // System systems[] = {System(4,k,0,Ts[i]),System(8,k,0,Ts[i]),System(16,k,0,Ts[i]),System(32,k,0,Ts[i])};
-
             System systems[num_size];
 
             for (int s = 0; s<num_size;s++)
@@ -327,11 +402,11 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
             {
                 for (int s = 0; s<num_size;s++)
                 {
-                    double M = std::abs(systems[s].magnetization());
-                    double E = std::abs(systems[s].hamiltonian());
-                    double E2 = std::pow(systems[s].hamiltonian(),2);
-                    double M2 = std::abs(std::pow(systems[s].magnetization(),2));
-                    double M4 = std::abs(std::pow(systems[s].magnetization(),4));
+                    double M = systems[s].magnetization();
+                    double E = systems[s].hamiltonian();
+                    double E2 = std::pow(E,2);
+                    double M2 = std::pow(M,2);
+                    double M4 = std::pow(M,4);
 
                     temp_mag[s] += M;
                     temp_mag2[s] += M2;
@@ -339,6 +414,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
                     temp_spec[s] += E2;
                     temp_mag4[s] += M4;
 
+                    // systems[s].sweep(1);
                     systems[s].step(systems[s].N*systems[s].N*10);
                 }
             }
@@ -352,10 +428,10 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
                 double E_mean = temp_E[s]/static_cast<double>(n_samples);
                 double E2_mean = temp_spec[s]/static_cast<double>(n_samples);
 
-                mags[s] += M_mean;
-                sus[s] += (M2_mean-std::pow(M_mean,2));
-                energy[s] += E_mean/k;
-                specific[s] += (E2_mean-std::pow(E_mean,2))/(k*k);
+                mags[s] += M_mean/(static_cast<double>(systems[s].N)*static_cast<double>(systems[s].N));
+                sus[s] += (M2_mean-std::pow(M_mean,2))/(static_cast<double>(systems[s].N)*static_cast<double>(systems[s].N)*Ts[i]);
+                energy[s] += E_mean/k/static_cast<double>(systems[s].N)/static_cast<double>(systems[s].N);
+                specific[s] += (E2_mean-std::pow(E_mean,2))/(k*k*static_cast<double>(systems[s].N)*static_cast<double>(systems[s].N)*Ts[i]*Ts[i]);
                 cumul[s] += 1.-M4_mean/(3.*std::pow(M2_mean,2));
             }
 
@@ -378,11 +454,11 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
 
         std::ofstream file(filename);
 
-        file << "T,M,X,E,Cv,U4\n";
+        file << "kT/J,M,X,E,Cv,U4\n";
 
         for (int i=0; i<T_steps;i++)
         {   
-            file << Ts[i];
+            file << k*Ts[i]/std::abs(J);
             file << ","; 
             file << mag_tot[s][i];
             file << ","; 
@@ -405,9 +481,9 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
 int main()
 {
     
-    int n_real = 10;
-    int n_samples = 200;
-    int T_steps = 40;
+    int n_real = 10; // standard 10
+    int n_samples = 10; // standard 1000
+    int T_steps = 40; // standard 40
 
     double B = 0;
     double J = k;
