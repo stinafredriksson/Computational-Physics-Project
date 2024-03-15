@@ -1,43 +1,59 @@
-#include <random>
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <string>
+//#################################################################
+// HEAD
+
+#include <random> // for RNG
+#include <cmath> // for abs, exp
+#include <iostream> // for writing in the terminal
+#include <fstream> // for writing in files
+#include <string> // imports the string class
 
 using namespace std;
 
-const double k = 1.380649e-23;
+//#################################################################
+// GLOBALS
+
+const double k = 1.380649e-23; // Boltzmann constant
+
+//#################################################################
+// SYSTEM CLASS
 
 class System {
 public:
-    // Member variables
-    int N;
-    double J;
-    double B;
-    double T;
+    int N; // lattice width
+    double J; // spin coupling strength
+    double B; // magnetic field interaction strength
+    double T; // temperature
 
-    bool bath_flag;
+    bool bath_flag; // to use heat bath or not
 
     int **lattice;
 
-    // Constructor
-    System(); // Default constructor
+    // constructors
+    System();
     System(int N_in, double J_in, double B_in, double T_in, bool bflag);
+
+    // pseudoconstructor
+    void setup(int N_in, double J_in, double B_in, double T_in, bool bflag);
 
     double magnetization();
     double hamiltonian();
     void sweep(int Nsweeps);
     void step(int Nsteps);
-    void setup(int N_in, double J_in, double B_in, double T_in, bool bflag);
     
 private:
-    double calc_dE(int i, int j);
-    double calc_pi(int i, int j);
+    double calc_dE(int i, int j); // energy change for a spin-flip at i,j
+    double calc_p_i(int i, int j); // heat bath probability
+    int calc_Snn(int i, int j);
 };
+
+//#################################################################
+// SYSTEM CLASS PUBLIC METHODS
 
 System::System(){}
 
-System::System(int N_in, double J_in, double B_in, double T_in, bool bflag = false) {
+
+System::System(int N_in, double J_in, double B_in, double T_in, bool bflag = false) 
+{
 
     N = N_in;
     J = J_in;
@@ -50,20 +66,17 @@ System::System(int N_in, double J_in, double B_in, double T_in, bool bflag = fal
 
     if (J_in > 0)
     {
-        frac = 0.75;
+        frac = 0.75; // faster approach to equilibrium
     }
     else
     {
         frac = 0.5;
     }
 
+    // initializes the 2D lattice
     lattice = new int*[N];
-    for (int i = 0; i < N; ++i) {
-        lattice[i] = new int[N];
-    }
-
-    lattice = new int*[N];
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i)
+    {
         lattice[i] = new int[N];
     }
 
@@ -71,9 +84,11 @@ System::System(int N_in, double J_in, double B_in, double T_in, bool bflag = fal
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> dist(0., 1.);
 
-    // Initialize 2D lattice
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
+    // populates 2D lattice
+    for (int i = 0; i < N; ++i) 
+    {
+        for (int j = 0; j < N; ++j) 
+        {
             double rand = dist(gen);
             int spin = (rand < frac) ? 1 : -1;
 
@@ -82,6 +97,7 @@ System::System(int N_in, double J_in, double B_in, double T_in, bool bflag = fal
     }
 
 }
+
 
 void System::setup(int N_in, double J_in, double B_in, double T_in, bool bflag = false)
 {
@@ -96,15 +112,17 @@ void System::setup(int N_in, double J_in, double B_in, double T_in, bool bflag =
 
     if (J_in > 0)
     {
-        frac = 0.75;
+        frac = 0.75; // faster approach to equilibrium
     }
     else
     {
         frac = 0.5;
     }
 
+    // initializes 2D lattice
     lattice = new int*[N];
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i)
+    {
         lattice[i] = new int[N];
     }
 
@@ -112,10 +130,11 @@ void System::setup(int N_in, double J_in, double B_in, double T_in, bool bflag =
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> dist(0., 1.);
 
-    // Initialize 2D lattice
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            // int spin = 1;
+    // populates 2D lattice
+    for (int i = 0; i < N; ++i) 
+    {
+        for (int j = 0; j < N; ++j) 
+        {
             double rand = dist(gen);
             int spin = (rand < frac) ? 1 : -1;
 
@@ -124,12 +143,15 @@ void System::setup(int N_in, double J_in, double B_in, double T_in, bool bflag =
     }
 }
 
+
 double System::magnetization()
 {
     int total_M = 0;
 
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
+    for (int i = 0; i < N; ++i) 
+    {
+        for (int j = 0; j < N; ++j) 
+        {
             total_M += lattice[i][j];
         }
     }
@@ -137,88 +159,27 @@ double System::magnetization()
     return static_cast<double>(total_M);
 }
 
+
 double System::hamiltonian()
 {
     double H = 0.;
-    
+    double tot_spin = 0;
+
 
     for (int i = 0; i < N; ++i) 
     {
         for (int j = 0; j < N; ++j) 
         {
-            int i_down = i;
-            int j_down = j;
-            
-            if (i == 0)
-            {
-                i_down = N-1;
-            }
-            if (j == 0)
-            {
-                j_down = N-1;
-            }
+            int Snn = calc_Snn(i,j);
 
-            H += - J*lattice[i][j]*(lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down]);
+            H += - J*lattice[i][j]*Snn;
+            tot_spin += 1.*lattice[i][j];
         }
-    }
-
-    if (B != 0)
-    {
-        double tot_spin = 0;
-
-        for (int i = 0; i < N; ++i) 
-        {
-            for (int j = 0; j < N; ++j) 
-            {
-                tot_spin += 1.*lattice[i][j];
-            }
-        }
-        H += -B*tot_spin;
     }
     
-    return H;
+    return H - B*tot_spin;
 }
 
-double System::calc_dE(int i, int j)
-{
-
-    int i_down = i;
-    int j_down = j;
-
-    if (i == 0)
-    {
-        i_down = N-1;
-    }
-    if (j == 0)
-    {
-        j_down = N-1;
-    }
-
-    int Snn = lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down];
-
-    return 2.*J*static_cast<double>(lattice[i][j])*static_cast<double>(Snn) + 2.*B*static_cast<double>(lattice[i][j]);
-}
-
-double System::calc_pi(int i, int j)
-{
-    int i_down = i;
-    int j_down = j;
-
-    if (i == 0)
-    {
-        i_down = N-1;
-    }
-    if (j == 0)
-    {
-        j_down = N-1;
-    }
-
-    int Snn = lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down];
-
-    double exponential = std::exp(2*J/(k*T)*Snn);
-
-    return exponential/(1+exponential);
-}
 
 void System::step(int Nsteps)
 {
@@ -234,9 +195,9 @@ void System::step(int Nsteps)
 
         if (bath_flag)
         {
-            double pi = calc_pi(i,j);
+            double p_i = calc_p_i(i,j);
 
-            if (dist2(gen) < pi)
+            if (dist2(gen) < p_i)
             {
                 lattice[i][j] = 1;
             }
@@ -257,6 +218,7 @@ void System::step(int Nsteps)
     }
 }
 
+
 void System::sweep(int Nsweeps)
 {
     std::random_device rd;
@@ -265,14 +227,15 @@ void System::sweep(int Nsweeps)
 
     for (int i = 1; i <= Nsweeps; i++)
     {
-        for (int i = 0; i < N; ++i) {
+        for (int i = 0; i < N; ++i) 
+        {
             for (int j = 0; j < N; ++j) 
             {
                 if (bath_flag)
                 {
-                    double pi = calc_pi(i,j);
+                    double p_i = calc_p_i(i,j);
 
-                    if (dist2(gen) < pi)
+                    if (dist2(gen) < p_i)
                     {
                         lattice[i][j] = 1;
                     }
@@ -296,7 +259,50 @@ void System::sweep(int Nsweeps)
     }
 }
 
+//#################################################################
+// SYSTEM CLASS PRIVATE METHODS
+
+double System::calc_dE(int i, int j)
+{
+    int Snn = calc_Snn(i,j);
+
+    return 2.*J*static_cast<double>(lattice[i][j])*static_cast<double>(Snn) + 2.*B*static_cast<double>(lattice[i][j]);
+}
+
+
+double System::calc_p_i(int i, int j)
+{
+    int Snn = calc_Snn(i,j);
+
+    double exponential = std::exp(2*J/(k*T)*Snn);
+
+    return exponential/(1+exponential);
+}
+
+
+int System::calc_Snn(int i, int j)
+{
+    int i_down = i-1;
+    int j_down = j-1;
+
+    if (i == 0)
+    {
+        i_down = N-1; // goes to end of lattice
+    }
+    if (j == 0)
+    {
+        j_down = N-1; // goes to end of lattice
+    }
+
+    return lattice[(i+1)%N][j]+lattice[i_down][j]+lattice[i][(j+1)%N]+lattice[i][j_down];
+}
+
+//#################################################################
+// FUNCTIONS
+
 double* linspace(double low, double high, int steps)
+// this generates a linear array between low-high inclusive with
+// steps+1 points
 {
     double* arr = new double[steps+1];
 
@@ -312,9 +318,9 @@ double* linspace(double low, double high, int steps)
     return arr;
 }
 
+
 void loading(int j, int total)
 {
-
     double frac = static_cast<double>(j)/static_cast<double>(total);
 
     int percentage = frac*100 + 0.5;
@@ -334,23 +340,24 @@ void loading(int j, int total)
     std::cout.flush();
 }
 
-void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, int T_steps = 100)
+
+void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 1000, int T_steps = 40)
 {
     int sizes[] = {4,8,16,32};
     int num_size = 4;
 
     double low = 1.;
-    double high = 4.;
+    double high = 10.;
 
-    // if (J<0)
-    // {
-    //     low = 1;
-    //     high = 3.;
-    // }
+    if (B!=0)
+    {
+        high = 10.;
+    }
 
     double* Ts = linspace(low,high,T_steps);
     T_steps = T_steps + 1;
 
+    // these are the arrays that will store the final values
     double mag_tot[num_size][T_steps];
     double sus_tot[num_size][T_steps];
     double energy_tot[num_size][T_steps];
@@ -359,6 +366,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
 
     for (int i = 0; i < T_steps; i++)
     {
+        // these arrays will average over the realizations
         double mags[num_size];
         double sus[num_size];
         double energy[num_size];
@@ -376,14 +384,14 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
 
         for (int j = 0; j < n_real; j++)
         {
-
-            loading(i*n_real+j,T_steps*n_real);
-
+            // these arrays will average over samples
             double temp_mag[num_size];
             double temp_mag2[num_size];
             double temp_E[num_size];
             double temp_spec[num_size];
             double temp_mag4[num_size];
+
+            loading(i*n_real+j,T_steps*n_real);
 
             System systems[num_size];
 
@@ -391,6 +399,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
             {
                 systems[s].setup(sizes[s],J,B,Ts[i]);
                 systems[s].sweep(20);
+
                 temp_mag[s] = 0.;
                 temp_mag2[s] = 0.;
                 temp_mag4[s] = 0.;
@@ -408,14 +417,22 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
                     double M2 = std::pow(M,2);
                     double M4 = std::pow(M,4);
 
-                    temp_mag[s] += M;
+                    if (J > 0)
+                    {
+                        temp_mag[s] += std::abs(M); // ferromagnet, look at |M|
+                    }
+                    else
+                    {
+                        temp_mag[s] += M; // antiferromagnet, M is about 0
+                    }
+                    
                     temp_mag2[s] += M2;
                     temp_E[s] += E;
                     temp_spec[s] += E2;
                     temp_mag4[s] += M4;
 
-                    // systems[s].sweep(1);
-                    systems[s].step(systems[s].N*systems[s].N*10);
+                    systems[s].sweep(1);
+                    systems[s].step(systems[s].N*systems[s].N*2);
                 }
             }
 
@@ -448,6 +465,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
         }
     }
 
+    // writes the results to csv files for plotting in Python
     for (int s = 0; s < num_size; s++)
     {
         std::string filename = "output_N" + std::to_string(sizes[s]) + ".csv";
@@ -471,24 +489,35 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 10, i
             file << cumul_tot[s][i];
             file << "\n";
         }
-        
-
         file.close();
     }    
-
 }
+
+//#################################################################
+// MAIN
 
 int main()
 {
     
     int n_real = 10; // standard 10
-    int n_samples = 10; // standard 1000
-    int T_steps = 40; // standard 40
+    int n_samples = 1000; // standard 1000
+    int T_steps = 20; // standard 40
 
-    double B = 0;
+    double B = k;
     double J = k;
 
     LLsizes(J,B,n_real,n_samples,T_steps);
+
+    // System sys = System(16,k,0,4);
+
+    // for (int i = 0; i<10; i++)
+    // {
+    //     sys.sweep(1);
+
+    //     std::cout << std::abs(sys.magnetization())/16/16 << std::endl;
+    // }
+
+
     
     return 0;
 }
