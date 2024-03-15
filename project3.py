@@ -16,7 +16,7 @@ class System():
     """This class handles the low-temperature behavior of a 
     lattice material"""
 
-    def __init__(self, N: int, J: float = k, B: float = 0, T: float = 2) -> None:
+    def __init__(self, N: int, J: float = -k, B: float = 0, T: float = 2) -> None:
         """
         parameters:
             N: lattice size [int]
@@ -33,13 +33,13 @@ class System():
         self.accepted = 0
 
         # initializes the spin lattice with random spins
-        self.lattice = np.random.choice([-1,1,1,1],size=(N,N))
+        self.lattice = np.random.choice([-1,1],size=(N,N))
 
 
     def magnetization(self) -> float:
         """calculates the magnetization of the lattice"""
 
-        return np.sum(self.lattice)/self.N**2
+        return np.sum(self.lattice)
     
 
     def hamiltonian(self) -> float:
@@ -83,7 +83,6 @@ class System():
         the sweeps are not super intensive for N<=32"""
 
         for _ in range(Nsweeps):
-
             # do sweep
             for i in range(self.N):
                 for j in range(self.N):
@@ -160,6 +159,8 @@ def order_over_T(N,J,steps):
 def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
             flags: list[bool] = [True, False, False, False]) -> None:
     
+    """Observe that this function is also written in C++"""
+
     Magnetization_flag = flags[0]
     Susceptibility_flag = flags[1]
     Specific_flag = flags[2]
@@ -222,12 +223,10 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
                         M = abs(systems[s].magnetization())
                         temps_mag[s].append(M)
                         if Susceptibility_flag:
-                            systems[s].equilibrialization(Nsweeps=2)
                             temps_sq[s].append(M**2)
                     if Specific_flag:
                         E = systems[s].hamiltonian()
                         temps_E[s].append(E)
-                        systems[s].equilibrialization(Nsweeps=2)
                         temp_spec[s].append(E**2)
                     if Cumulant_flag:
                         M = abs(systems[s].magnetization())
@@ -241,7 +240,7 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
                 for s in range(len(sizes)):
                     mags[s].append(np.mean(temps_mag[s]))
                     if Susceptibility_flag:
-                        sus[s].append(np.mean(temps_sq[s])-np.mean(temps_mag[s])**2)
+                        sus[s].append((np.mean(temps_sq[s])-np.mean(temps_mag[s])**2)/systems[s].N**2)
             if Specific_flag:
                 for s in range(len(sizes)):
                     energys[s].append(np.mean(temps_E[s])/k)
@@ -274,46 +273,59 @@ def LLsizes(sizes: list[int] = [4,8,16,32], n_avgs: int = 100,
 
 
 def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[float]):
+    def __ferro(T):
+        return 1/(T-Tc)
+    
+    Tc = 2.2691853
+    x = np.linspace(Tc+0.1,Ts[-1],200)
+    ferros = __ferro(x)
+
     labels = [f"N={size}"for size in sizes]
+    ms = ["^","s","o","D"]
     if len(Magnet[0])>0:
         plt.figure(1)
+        plt.vlines([Tc],0,1,linestyles="--", colors="grey", label=r"$T_c$")
         for i,magt in enumerate(Magnet):
-            plt.plot(Ts,magt,color = f"C{i}",linestyle="--")
-            plt.scatter(Ts,magt,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+            plt.plot(Ts,magt,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
+            # plt.scatter(Ts,magt,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
         plt.grid(linestyle="--")
         plt.legend()
         plt.title("Magnetization over temperature for different grid sizes")
-        plt.ylabel("Magnetization |M|")
+        plt.ylabel(r"Magnetization $|M|/N^2$")
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Suscept[0])>0:
         plt.figure(2)
+        plt.vlines([Tc],0,max(Suscept[-1]),linestyles="--", colors="grey", label=r"$T_c$")
         for i,suscept in enumerate(Suscept):
-            plt.plot(Ts,suscept,color = f"C{i}",linestyle="--")
-            plt.scatter(Ts,suscept,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+            plt.plot(Ts,suscept,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
+            # plt.scatter(Ts,suscept,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
         plt.grid(linestyle="--")
         plt.legend()
         plt.title("Susceptibility over temperature for different grid sizes")
-        plt.ylabel(r"Susceptibility $\chi$")
+        plt.ylabel(r"Susceptibility $\chi/N^2$")
         plt.xlabel(r"Temperature $Tk_B/J$")
+        # plt.plot(x,ferros)
     if len(Specific[0])>0:
         plt.figure(3)
+        plt.vlines([Tc],0,max(Specific[-1]),linestyles="--", colors="grey", label=r"$T_c$")
         for i,specific in enumerate(Specific):
-            plt.plot(Ts,specific,color = f"C{i}",linestyle="--")
-            plt.scatter(Ts,specific,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+            plt.plot(Ts,specific,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
+            # plt.scatter(Ts,specific,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
         plt.grid(linestyle="--")
         plt.legend()
         plt.title("Specific heat over temperature for different grid sizes")
-        plt.ylabel(r"Specific heat$/k_B$")
+        plt.ylabel(r"Specific heat $C_B/k_BN^2$")
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Cumul[0])>0:
         plt.figure(4)
+        plt.vlines([Tc],min(Cumul[-1]),1.2*max(Cumul[-1]),linestyles="--", colors="grey", label=r"$T_c$")
         for i,cum in enumerate(Cumul):
-            plt.plot(Ts,cum,color = f"C{i}",linestyle="--")
-            plt.scatter(Ts,cum,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+            plt.plot(Ts,cum,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
+            # plt.scatter(Ts,cum,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
         plt.grid(linestyle="--")
         plt.legend()
         plt.title("Cumulant over temperature for different grid sizes")
-        plt.ylabel(r"Cumulant")
+        plt.ylabel(r"Cumulant $U^4_L$")
         plt.xlabel(r"Temperature $Tk_B/J$")
     plt.show()
 
@@ -349,7 +361,7 @@ def plot_CPP(sizes):
     U4s = []
 
     for size in sizes:
-        filename = f"output_N{size}.csv"
+        filename = f"Ferro_80T/output_N{size}.csv"
         T,M,X,E,Cv,U4 = read_csv(filename)
         Ms.append(M)
         Xs.append(X)
@@ -359,119 +371,31 @@ def plot_CPP(sizes):
     
     plotting_LLsize(Ms,Xs,Cvs,U4s,sizes,T)
 
+
+def show_evolution():
+
+    sys = System(32,-k,0,1)
+
+    n_steps = 200000
+
+    for i in range(n_steps):
+        sys.step()
+        if i in [0,0.5*n_steps,n_steps-1]:
+    # sys.equilibrialization(Nsweeps=100)
+    
+            sys.show_state()
+
 #################################################################
 ## MAIN
 
 def main():
 
-    # LLsizes(flags=[False,True,False,False], n_avgs=10)
+    # LLsizes(flags=[False,True,False,False], n_avgs=2)
 
     sizes = [4,8,16,32]
 
     plot_CPP(sizes)
 
-    # sys = [System(32, T = 1.5) for _ in range(10)]
-    # m= [[] for _ in range(len(sys))]
-
-    # ll = list(range(100000))
-
-    # for _ in ll:
-    #     for s in range(len(sys)):
-    #         sys[s].step()
-    #         m[s].append(abs(sys[s].magnetization()))
-
-    # for s in range(len(sys)):
-    #     plt.plot(ll,m[s])
-    #     print(sys[s].accepted/sys[s].steps)
-    # plt.show()
-    # sys.show_state()
-        
-    # print(np.mean(m))
-    # print(f"\nTime: {time.time()-t1}")
-
-    # print(estimate_order(16,1,100,10000))
-
-    # order_over_T(16,1,10000)
-
-    # Ts = np.linspace(1,4,20)
-
-    # magsup = []
-
-    # for j,Ti in enumerate(Ts):
-
-    #     temp = []
-    #     for _ in range(1):
-
-    #         system = System(32, T=Ti)
-
-    #         system.equilibrialization()
-
-    #         times = [time.time(), time.time()]
-
-    #         steps = 100
-
-    #         tt = list(range(0,steps))
-    #         mags = []
-
-    #         for i in range(steps):
-
-    #             times.pop(0)
-    #             times.append(time.time())
-    #             # print(f"\r[{'#'*round(i/(steps -1)*20):.<20}] {round(i/(steps-1)*100):02}% |{round((times[1]-times[0])*(steps-1-i)):04}s|",end="\r")
-    #             print(f"\r[{'#'*round(j/(len(Ts) -1)*20):.<20}] {round(j/(len(Ts)-1)*100):02}% |{round((times[1]-times[0])*(len(Ts)-1-i)):04}s|",end="\r")
-    #             system.step()
-
-    #             mags.append(system.magnetization())
-
-    #             # if i in [0,9,99,999]:
-
-    #             #     system.show_state()
-    #         temp.append(abs(np.mean(mags)))
-            
-    #     magsup.append(np.mean(temp))
-
-    # mag = []
-
-    # system = System(32, T=2.2)
-
-    # # system.equilibrialization()
-
-    # times = [time.time(), time.time()]
-
-    # # steps = 100000
-
-    # system.equilibrialization()
-
-    # steps = 10000
-
-    # tt = list(range(0,steps))
-
-    # for i in range(steps):
-
-    #     times.pop(0)
-    #     times.append(time.time())
-    #     print(f"\r[{'#'*round(i/(steps -1)*20):.<20}] {round(i/(steps-1)*100):02}% |{round((times[1]-times[0])*(steps-1-i)):04}s|",end="\r")
-    #     # print(f"\r[{'#'*round(j/(len(Ts) -1)*20):.<20}] {round(j/(len(Ts)-1)*100):02}% |{round((times[1]-times[0])*(len(Ts)-1-i)):04}s|",end="\r")
-    #     system.step()
-
-    #     mag.append(system.magnetization())
-
-
-    # plt.plot(tt,mag)
-    # plt.show()
-
-
-    # print(system.magnetization())
-    # system.lattice[0][0] = 2
-    # system.lattice[-1][-1] = 2
-
-    # print(system.hamiltonian())
-    # system.show_state()
-
-    # print(system.calc_dE(2,2))
-
-    # print(system.lattice)
-    # print(lattice.magnetization())
 
 #################################################################
 ## RUN CODE
