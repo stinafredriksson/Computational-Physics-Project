@@ -194,7 +194,7 @@ void System::step(int Nsteps)
         int j = dist(gen);
 
         if (bath_flag)
-        {
+        { 
             double p_i = calc_p_i(i,j);
 
             if (dist2(gen) < p_i)
@@ -341,13 +341,13 @@ void loading(int j, int total)
 }
 
 
-void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 1000, int T_steps = 40)
+void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 1000, int T_steps = 40, bool bflag = false)
 {
     int sizes[] = {4,8,16,32};
     int num_size = 4;
 
     double low = 1.;
-    double high = 10.;
+    double high = 4.;
 
     if (B!=0)
     {
@@ -397,7 +397,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 1000,
 
             for (int s = 0; s<num_size;s++)
             {
-                systems[s].setup(sizes[s],J,B,Ts[i]);
+                systems[s].setup(sizes[s],J,B,Ts[i], bflag);
                 systems[s].sweep(20);
 
                 temp_mag[s] = 0.;
@@ -432,7 +432,7 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 1000,
                     temp_mag4[s] += M4;
 
                     systems[s].sweep(1);
-                    systems[s].step(systems[s].N*systems[s].N*2);
+                    systems[s].step(systems[s].N*systems[s].N*5);
                 }
             }
 
@@ -497,27 +497,17 @@ void LLsizes(double J = k, double B = 0., int n_real = 10, int n_samples = 1000,
 // MAIN
 
 int main()
-{
-    
+{   
     int n_real = 10; // standard 10
     int n_samples = 1000; // standard 1000
-    int T_steps = 20; // standard 40
+    int T_steps = 40; // standard 40
 
-    double B = k;
-    double J = k;
+    double B = 0; // standard 0
+    double J = k; // standard +k (ferro) -k (anti-ferro)
 
-    LLsizes(J,B,n_real,n_samples,T_steps);
+    bool bflag = true; // standard false
 
-    // System sys = System(16,k,0,4);
-
-    // for (int i = 0; i<10; i++)
-    // {
-    //     sys.sweep(1);
-
-    //     std::cout << std::abs(sys.magnetization())/16/16 << std::endl;
-    // }
-
-
+    LLsizes(J,B,n_real,n_samples,T_steps,bflag);
     
     return 0;
 }

@@ -30,7 +30,8 @@ def boole(f, a1: float, a2:float, N:int, b, rmin) -> float:
 
     h = (a2-a1)/N
 
-    return 2*h/45*(7*(f(a1,b,rmin)+f(a2,b,rmin)) + 32*sum([f(a1+k*h,b,rmin) for k in range(1,N,2)])+\
+    return 2*h/45*(7*(f(a1,b,rmin)+f(a2,b,rmin)) +\
+                   32*sum([f(a1+k*h,b,rmin) for k in range(1,N,2)])+\
                    12*sum([f(a1+k*h,b,rmin) for k in range(2,N,4)])+\
                    14*sum([f(a1+k*h,b,rmin) for k in range(4,N,4)]))
 
@@ -279,7 +280,7 @@ def plot_ordo() -> None:
 #################################################################
 ## GLOBALS
 
-U0 = 1
+U0 = -1
 E = 2
 rmax = 10
 

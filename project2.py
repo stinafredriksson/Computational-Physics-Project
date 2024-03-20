@@ -96,7 +96,7 @@ def integrate(b: float, N: int, E) -> float:
 def plot_cross_section() -> None:
     """plotting the cross section with a varying b and V"""
 
-    bs = np.linspace(0.1,rmax-0.1,200)
+    bs = np.linspace(0.1,rmax-0.01,200)
     Vs = [0.1,0.5,1,5,10,100]
     cs = [[],[],[],[],[],[]]
     N=160
@@ -119,8 +119,9 @@ def plot_cross_section() -> None:
     plt.grid(linestyle='--')
     plt.xlabel(r"$b$")
     plt.legend()
-    plt.ylabel(r"$d\sigma/d\Omega$")
+    plt.ylabel(r"$\log(d\sigma/d\Omega)$")
     plt.title(r"Cross-Section vs $b$")
+    plt.xticks([0,a,2*a,rmax],[0,"a","2a",r"$r_\text{max}$"])
     plt.show()
     ########
 
@@ -140,6 +141,7 @@ def plot_potential() -> None:
     plt.grid(linestyle="--")
     plt.xlabel("r")
     plt.ylabel("V")
+    plt.ylim(-2,5)
     plt.title("Lennard Jones potential")
     plt.yticks(color = "w")
     plt.xticks([0,a,3*a], [0,r"$a$",r"$r_\text{max}$"])
@@ -210,9 +212,9 @@ V0 = 1
 def main():
     # plot_potential()
     # plot_rmin()
-    plot_integral()
+    # plot_integral()
     # print(r_min(10,V0))
-    # plot_cross_section()
+    plot_cross_section()
 
 #################################################################
 ## RUN CODE

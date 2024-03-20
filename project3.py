@@ -1,5 +1,9 @@
 #################################################################
 ## PROJECT 3
+##
+## OBSERVE!! 
+## THIS CODE IS MOSTLY DEPRECATED EXCEPT FOR THE PLOTTING. 
+## TO SIMULATE THE ISING MODEL, USE THE C++ CODE
 #################################################################
 ## IMPORTS
 
@@ -8,6 +12,15 @@ import time
 import csv
 import matplotlib.pyplot as plt
 from scipy.constants import Boltzmann as k
+
+#################################################################
+## DEPRECATION WARNING
+
+print("####################################################")
+print("WARNING\n")
+print("PYTHON CODE FOR SIMULATING ISING MODEL IS DEPRECATED")
+print("USE C++ CODE INSTEAD")
+print("####################################################")
 
 #################################################################
 ## CLASSES
@@ -284,7 +297,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
     ms = ["^","s","o","D"]
     if len(Magnet[0])>0:
         plt.figure(1)
-        plt.vlines([Tc],0,1,linestyles="--", colors="grey", label=r"$T_c$")
+        # plt.vlines([Tc],0,1,linestyles="--", colors="grey", label=r"$T_c$")
         for i,magt in enumerate(Magnet):
             plt.plot(Ts,magt,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
             # plt.scatter(Ts,magt,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -295,7 +308,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Suscept[0])>0:
         plt.figure(2)
-        plt.vlines([Tc],0,max(Suscept[-1]),linestyles="--", colors="grey", label=r"$T_c$")
+        # plt.vlines([Tc],0,max(Suscept[-1]),linestyles="--", colors="grey", label=r"$T_c$")
         for i,suscept in enumerate(Suscept):
             plt.plot(Ts,suscept,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
             # plt.scatter(Ts,suscept,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -307,7 +320,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         # plt.plot(x,ferros)
     if len(Specific[0])>0:
         plt.figure(3)
-        plt.vlines([Tc],0,max(Specific[-1]),linestyles="--", colors="grey", label=r"$T_c$")
+        # plt.vlines([Tc],0,max(Specific[-1]),linestyles="--", colors="grey", label=r"$T_c$")
         for i,specific in enumerate(Specific):
             plt.plot(Ts,specific,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
             # plt.scatter(Ts,specific,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -318,7 +331,7 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.xlabel(r"Temperature $Tk_B/J$")
     if len(Cumul[0])>0:
         plt.figure(4)
-        plt.vlines([Tc],min(Cumul[-1]),1.2*max(Cumul[-1]),linestyles="--", colors="grey", label=r"$T_c$")
+        # plt.vlines([Tc],min(Cumul[-1]),1.2*max(Cumul[-1]),linestyles="--", colors="grey", label=r"$T_c$")
         for i,cum in enumerate(Cumul):
             plt.plot(Ts,cum,color = f"C{i}",linestyle="--",marker=ms[i],markerfacecolor="none",label=labels[i])
             # plt.scatter(Ts,cum,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
@@ -328,7 +341,6 @@ def plotting_LLsize(Magnet, Suscept, Specific, Cumul, sizes: list[int], Ts:list[
         plt.ylabel(r"Cumulant $U^4_L$")
         plt.xlabel(r"Temperature $Tk_B/J$")
     plt.show()
-
 
 def read_csv(filename):
     T = []
@@ -372,11 +384,65 @@ def plot_CPP(sizes):
     plotting_LLsize(Ms,Xs,Cvs,U4s,sizes,T)
 
 
+def plot_Bs():
+
+    ks = [0.1,0.5,""]
+    labels = ["B=0","B=J/10","B=J/2","B=J"]
+    ms = ["^","s","o","D"]
+
+    mag = []
+    sus = []
+    cvs = []
+
+    for ki in ks:
+        filename = f"saved_AF_B_{ki}k/output_N32.csv"
+        T,M,X,E,Cv,U4 = read_csv(filename)
+        mag.append(M)
+        sus.append(X)
+        cvs.append(Cv)
+
+    
+    T2, M,X,E,Cv,U4 = read_csv("saved_AF/output_N32.csv")
+
+    plt.figure(1)
+    plt.plot(T2,M,color = f"C{0}",linestyle="--",marker=ms[0],markerfacecolor="none",label=labels[0])
+    for i,m in enumerate(mag):
+        plt.plot(T,m,color = f"C{i+1}",linestyle="--",marker=ms[i+1],markerfacecolor="none",label=labels[i+1])
+    plt.grid(linestyle="--")
+    plt.legend()
+    plt.title("Magnetization over temperature for different magnetic fields")
+    plt.ylabel(r"Magnetization $|M|/N^2$")
+    plt.xlabel(r"Temperature $Tk_B/J$")
+
+    plt.figure(2)
+    plt.plot(T2,X,color = f"C{0}",linestyle="--",marker=ms[0],markerfacecolor="none",label=labels[0])
+    for i,suscept in enumerate(sus):
+        plt.plot(T,suscept,color = f"C{i+1}",linestyle="--",marker=ms[i+1],markerfacecolor="none",label=labels[i+1])
+        # plt.scatter(Ts,suscept,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+    plt.grid(linestyle="--")
+    plt.legend()
+    plt.title("Susceptibility over temperature for different grid sizes")
+    plt.ylabel(r"Susceptibility $\chi/N^2$")
+    plt.xlabel(r"Temperature $Tk_B/J$")
+    
+    plt.figure(3)
+    plt.plot(T2,Cv,color = f"C{0}",linestyle="--",marker=ms[0],markerfacecolor="none",label=labels[0])
+    for i,specific in enumerate(cvs):
+        plt.plot(T,specific,color = f"C{i+1}",linestyle="--",marker=ms[i+1],markerfacecolor="none",label=labels[i+1])
+        # plt.scatter(Ts,specific,facecolors = "none",edgecolors = f"C{i}",marker=["o","s"][i%2],label=labels[i])
+    plt.grid(linestyle="--")
+    plt.legend()
+    plt.title("Specific heat over temperature for different magnetic fields")
+    plt.ylabel(r"Specific heat $C_B/k_BN^2$")
+    plt.xlabel(r"Temperature $Tk_B/J$")
+    plt.show()
+
+
 def show_evolution():
 
     sys = System(32,-k,0,1)
 
-    n_steps = 200000
+    n_steps = 100000
 
     for i in range(n_steps):
         sys.step()
@@ -395,6 +461,10 @@ def main():
     sizes = [4,8,16,32]
 
     plot_CPP(sizes)
+
+    # plot_Bs()
+
+    # show_evolution()
 
 
 #################################################################
